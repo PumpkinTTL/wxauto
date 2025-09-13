@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>微信自动化功能中心</title>
+    <!-- Element Plus CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <!-- Element Plus Icons -->
+    <script src="//cdn.jsdelivr.net/npm/@element-plus/icons-vue"></script>
+    <!-- Animate.css -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-size: 14px;
+            overflow-x: hidden;
+        }
+
+        .main-container {
+            min-height: 100vh;
+            padding: 24px;
+            box-sizing: border-box;
+        }
+
+        /* 页面标题区域 */
+        .page-header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 40px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            color: white;
+            box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .page-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(-50%, -50%) rotate(0deg); }
+            50% { transform: translate(-50%, -50%) rotate(180deg); }
+        }
+
+        .page-title {
+            font-size: 36px;
+            font-weight: 700;
+            margin: 0 0 12px 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        .page-subtitle {
+            font-size: 18px;
+            opacity: 0.9;
+            margin: 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* 状态指示器区域 */
+        .status-bar {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+
+        .status-item {
+            background: white;
+            border-radius: 16px;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .status-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+        }
+
+        .status-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+        }
+
+        .status-connected .status-icon {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+
+        .status-disconnected .status-icon {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+
+        .status-processing .status-icon {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        }
+
+        .status-text {
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        /* 功能卡片网格 */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        .function-card {
+            background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+            border-radius: 20px;
+            padding: 28px;
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.1),
+                0 2px 8px rgba(0, 0, 0, 0.06),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .function-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: var(--card-gradient);
+            border-radius: 20px 20px 0 0;
+        }
+
+        .function-card::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, var(--card-glow) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .function-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 
+                0 20px 60px rgba(0, 0, 0, 0.15),
+                0 8px 24px var(--card-shadow),
+                inset 0 1px 0 rgba(255, 255, 255, 0.9);
+            border-color: var(--card-border);
+        }
+
+        .function-card:hover::after {
+            opacity: 1;
+        }
+
+        /* 卡片主题色彩 */
+        .card-contacts {
+            --card-gradient: linear-gradient(90deg, #10b981, #059669);
+            --card-glow: rgba(16, 185, 129, 0.05);
+            --card-shadow: rgba(16, 185, 129, 0.2);
+            --card-border: rgba(16, 185, 129, 0.3);
+        }
+
+        .card-chat {
+            --card-gradient: linear-gradient(90deg, #3b82f6, #1d4ed8);
+            --card-glow: rgba(59, 130, 246, 0.05);
+            --card-shadow: rgba(59, 130, 246, 0.2);
+            --card-border: rgba(59, 130, 246, 0.3);
+        }
+
+        .card-reply {
+            --card-gradient: linear-gradient(90deg, #8b5cf6, #7c3aed);
+            --card-glow: rgba(139, 92, 246, 0.05);
+            --card-shadow: rgba(139, 92, 246, 0.2);
+            --card-border: rgba(139, 92, 246, 0.3);
+        }
+
+        .card-broadcast {
+            --card-gradient: linear-gradient(90deg, #f59e0b, #d97706);
+            --card-glow: rgba(245, 158, 11, 0.05);
+            --card-shadow: rgba(245, 158, 11, 0.2);
+            --card-border: rgba(245, 158, 11, 0.3);
+        }
+
+        .card-friends {
+            --card-gradient: linear-gradient(90deg, #ec4899, #be185d);
+            --card-glow: rgba(236, 72, 153, 0.05);
+            --card-shadow: rgba(236, 72, 153, 0.2);
+            --card-border: rgba(236, 72, 153, 0.3);
+        }
+
+        .card-stats {
+            --card-gradient: linear-gradient(90deg, #06b6d4, #0891b2);
+            --card-glow: rgba(6, 182, 212, 0.05);
+            --card-shadow: rgba(6, 182, 212, 0.2);
+            --card-border: rgba(6, 182, 212, 0.3);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .card-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--card-gradient);
+            color: white;
+            font-size: 28px;
+            box-shadow: 
+                0 8px 24px var(--card-shadow),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-icon::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+            transform: rotate(45deg);
+            transition: transform 0.6s ease;
+        }
+
+        .function-card:hover .card-icon::before {
+            transform: rotate(45deg) translate(100%, 100%);
+        }
+
+        .card-info {
+            flex: 1;
+        }
+
+        .card-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1e293b;
+            margin: 0 0 4px 0;
+        }
+
+        .card-subtitle {
+            font-size: 14px;
+            color: #64748b;
+            margin: 0;
+            line-height: 1.4;
+        }
+
+        .card-content {
+            margin-bottom: 24px;
+        }
+
+        .card-description {
+            color: #475569;
+            line-height: 1.6;
+            margin-bottom: 16px;
+        }
+
+        .card-stats {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .stat-item {
+            flex: 1;
+            text-align: center;
+            padding: 12px;
+            background: rgba(248, 250, 252, 0.8);
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .stat-number {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            flex: 1;
+            min-width: 120px;
+            height: 44px;
+            border-radius: 12px !important;
+            font-weight: 600 !important;
+            transition: all 0.3s ease !important;
+            border: none !important;
+        }
+
+        .action-btn.primary {
+            background: var(--card-gradient) !important;
+            color: white !important;
+        }
+
+        .action-btn.primary:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 8px 24px var(--card-shadow) !important;
+        }
+
+        .action-btn.secondary {
+            background: rgba(248, 250, 252, 0.9) !important;
+            color: #475569 !important;
+            border: 1px solid #e2e8f0 !important;
+        }
+
+        .action-btn.secondary:hover {
+            background: #f1f5f9 !important;
+            border-color: #cbd5e1 !important;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 1200px) {
+            .cards-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                padding: 16px;
+            }
+            
+            .cards-grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+            
+            .function-card {
+                padding: 20px;
+            }
+            
+            .page-title {
+                font-size: 28px;
+            }
+            
+            .page-subtitle {
+                font-size: 16px;
+            }
+            
+            .status-bar {
+                gap: 12px;
+            }
+            
+            .status-item {
+                padding: 12px 16px;
+            }
+        }
+
+        /* 加载动画 */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            backdrop-filter: blur(4px);
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid #e2e8f0;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- 加载遮罩 -->
+        <div v-if="loading" class="loading-overlay">
+            <div class="loading-spinner"></div>
+        </div>
+
+        <div class="main-container">
+            <!-- 页面标题 -->
+            <div class="page-header animate__animated animate__fadeInDown">
+                <h1 class="page-title">🤖 微信自动化功能中心</h1>
+                <p class="page-subtitle">智能化微信管理，让工作更高效</p>
+            </div>
+
+            <!-- 状态指示器 -->
+            <div class="status-bar animate__animated animate__fadeInUp" style="animation-delay: 0.2s;">
+                <div class="status-item" :class="wechatStatus.class">
+                    <div class="status-icon">
+                        <el-icon><Connection /></el-icon>
+                    </div>
+                    <div>
+                        <div class="status-text">微信连接</div>
+                        <div style="font-size: 12px; color: #64748b;">{{ wechatStatus.text }}</div>
+                    </div>
+                </div>
+                
+                <div class="status-item status-connected">
+                    <div class="status-icon">
+                        <el-icon><Cpu /></el-icon>
+                    </div>
+                    <div>
+                        <div class="status-text">自动化引擎</div>
+                        <div style="font-size: 12px; color: #64748b;">运行正常</div>
+                    </div>
+                </div>
+                
+                <div class="status-item" :class="monitoringStatus.class">
+                    <div class="status-icon">
+                        <el-icon><Monitor /></el-icon>
+                    </div>
+                    <div>
+                        <div class="status-text">监控状态</div>
+                        <div style="font-size: 12px; color: #64748b;">{{ monitoringStatus.text }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 功能卡片网格 -->
+            <div class="cards-grid animate__animated animate__fadeInUp" style="animation-delay: 0.4s;">
+                <!-- 联系人管理卡片 -->
+                <div class="function-card card-contacts animate__animated animate__zoomIn" style="animation-delay: 0.5s;">
+                    <div class="card-header">
+                        <div class="card-icon">
+                            <el-icon><User /></el-icon>
+                        </div>
+                        <div class="card-info">
+                            <h3 class="card-title">联系人管理</h3>
+                            <p class="card-subtitle">导出通讯录，管理好友信息</p>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <p class="card-description">
+                            快速导出微信联系人列表，支持Excel格式，包含好友昵称、备注、分组等详细信息。
+                        </p>
+                        <div class="card-stats">
+                            <div class="stat-item">
+                                <div class="stat-number">{{ contactStats.total }}</div>
+                                <div class="stat-label">总联系人</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number">{{ contactStats.exported }}</div>
+                                <div class="stat-label">已导出</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-actions">
+                        <el-button class="action-btn primary" @click="exportContacts" :loading="exportingContacts">
+                            <el-icon><Download /></el-icon>
+                            导出联系人
+                        </el-button>
+                        <el-button class="action-btn secondary" @click="refreshContacts" :loading="refreshingContacts">
+                            <el-icon><Refresh /></el-icon>
+                            刷新列表
+                        </el-button>
+                    </div>
+                </div>
+
+                <!-- 聊天记录监听卡片 -->
+                <div class="function-card card-chat animate__animated animate__zoomIn" style="animation-delay: 0.6s;">
+                    <div class="card-header">
+                        <div class="card-icon">
+                            <el-icon><ChatLineRound /></el-icon>
+                        </div>
+                        <div class="card-info">
+                            <h3 class="card-title">聊天记录监听</h3>
+                            <p class="card-subtitle">实时监控消息，自动记录</p>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <p class="card-description">
+                            实时监听微信聊天消息，自动记录重要对话，支持关键词过滤和消息分类。
+                        </p>
+                        <div class="card-stats">
+                            <div class="stat-item">
+                                <div class="stat-number">{{ chatStats.monitored }}</div>
+                                <div class="stat-label">监听会话</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number">{{ chatStats.messages }}</div>
+                                <div class="stat-label">记录消息</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-actions">
+                        <el-button
+                            class="action-btn primary"
+                            @click="toggleChatMonitoring"
+                            :loading="chatMonitoringLoading"
+                            :type="chatMonitoring ? 'danger' : 'primary'"
+                        >
+                            <el-icon v-if="chatMonitoring"><VideoPause /></el-icon>
+                            <el-icon v-else><VideoPlay /></el-icon>
+                            {{ chatMonitoring ? '停止监听' : '开始监听' }}
+                        </el-button>
+                        <el-button class="action-btn secondary" @click="exportChatLogs" :loading="exportingChats">
+                            <el-icon><Document /></el-icon>
+                            导出记录
+                        </el-button>
+                    </div>
+                </div>
+
+                <!-- 智能自动回复卡片 -->
+                <div class="function-card card-reply animate__animated animate__zoomIn" style="animation-delay: 0.7s;">
+                    <div class="card-header">
+                        <div class="card-icon">
+                            <el-icon><ChatDotRound /></el-icon>
+                        </div>
+                        <div class="card-info">
+                            <h3 class="card-title">智能自动回复</h3>
+                            <p class="card-subtitle">设置关键词自动回复</p>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <p class="card-description">
+                            基于关键词和规则的智能自动回复系统，支持多种回复模式和时间控制。
+                        </p>
+                        <div class="card-stats">
+                            <div class="stat-item">
+                                <div class="stat-number">{{ replyStats.rules }}</div>
+                                <div class="stat-label">回复规则</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number">{{ replyStats.replied }}</div>
+                                <div class="stat-label">自动回复</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-actions">
+                        <el-button
+                            class="action-btn primary"
+                            @click="toggleAutoReply"
+                            :loading="autoReplyLoading"
+                            :type="autoReplyEnabled ? 'danger' : 'primary'"
+                        >
+                            <el-icon v-if="autoReplyEnabled"><Close /></el-icon>
+                            <el-icon v-else><Check /></el-icon>
+                            {{ autoReplyEnabled ? '关闭回复' : '启用回复' }}
+                        </el-button>
+                        <el-button class="action-btn secondary" @click="showAutoReplySettings = true">
+                            <el-icon><Setting /></el-icon>
+                            设置规则
+                        </el-button>
+                    </div>
+                </div>
+
+                <!-- 群发消息卡片 -->
+                <div class="function-card card-broadcast animate__animated animate__zoomIn" style="animation-delay: 0.8s;">
+                    <div class="card-header">
+                        <div class="card-icon">
+                            <el-icon><Promotion /></el-icon>
+                        </div>
+                        <div class="card-info">
+                            <h3 class="card-title">群发消息</h3>
+                            <p class="card-subtitle">批量发送消息给好友</p>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <p class="card-description">
+                            批量向选定的好友发送消息，支持个性化内容和发送时间控制。
+                        </p>
+                        <div class="card-stats">
+                            <div class="stat-item">
+                                <div class="stat-number">{{ broadcastStats.sent }}</div>
+                                <div class="stat-label">已发送</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number">{{ broadcastStats.success }}</div>
+                                <div class="stat-label">成功率%</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-actions">
+                        <el-button class="action-btn primary" @click="showBroadcastDialog = true">
+                            <el-icon><Promotion /></el-icon>
+                            群发消息
+                        </el-button>
+                        <el-button class="action-btn secondary" @click="showBroadcastHistory = true">
+                            <el-icon><Clock /></el-icon>
+                            发送历史
+                        </el-button>
+                    </div>
+                </div>
+                <!-- 好友管理卡片 -->
+                <div class="function-card card-friends animate__animated animate__zoomIn" style="animation-delay: 0.9s;">
+                    <div class="card-header">
+                        <div class="card-icon">
+                            <el-icon><UserPlus /></el-icon>
+                        </div>
+                        <div class="card-info">
+                            <h3 class="card-title">好友管理</h3>
+                            <p class="card-subtitle">批量添加好友，管理申请</p>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <p class="card-description">
+                            智能批量添加好友，自动处理好友申请，支持验证消息模板和添加策略。
+                        </p>
+                        <div class="card-stats">
+                            <div class="stat-item">
+                                <div class="stat-number">{{ friendStats.added }}</div>
+                                <div class="stat-label">已添加</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number">{{ friendStats.pending }}</div>
+                                <div class="stat-label">待处理</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-actions">
+                        <el-button class="action-btn primary" @click="showAddFriendsPanel = true">
+                            <el-icon><Plus /></el-icon>
+                            批量添加
+                        </el-button>
+                        <el-button class="action-btn secondary" @click="showFriendRequests = true">
+                            <el-icon><Bell /></el-icon>
+                            好友申请
+                        </el-button>
+                    </div>
+                </div>
+
+                <!-- 数据统计卡片 -->
+                <div class="function-card card-stats animate__animated animate__zoomIn" style="animation-delay: 1.0s;">
+                    <div class="card-header">
+                        <div class="card-icon">
+                            <el-icon><DataAnalysis /></el-icon>
+                        </div>
+                        <div class="card-info">
+                            <h3 class="card-title">数据统计</h3>
+                            <p class="card-subtitle">查看使用统计和分析</p>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <p class="card-description">
+                            全面的数据统计和分析报告，包含使用情况、效果分析和趋势图表。
+                        </p>
+                        <div class="card-stats">
+                            <div class="stat-item">
+                                <div class="stat-number">{{ statsData.operations }}</div>
+                                <div class="stat-label">总操作数</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number">{{ statsData.efficiency }}</div>
+                                <div class="stat-label">效率提升%</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-actions">
+                        <el-button class="action-btn primary" @click="showStatsDialog = true">
+                            <el-icon><TrendCharts /></el-icon>
+                            查看统计
+                        </el-button>
+                        <el-button class="action-btn secondary" @click="exportStats">
+                            <el-icon><Download /></el-icon>
+                            导出报告
+                        </el-button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Element Plus -->
+    <script src="https://unpkg.com/element-plus/dist/index.full.js"></script>
+    <!-- Element Plus Icons -->
+    <script src="https://unpkg.com/@element-plus/icons-vue/dist/index.iife.js"></script>
+
+    <script>
+        const { createApp, ref, onMounted } = Vue;
+        const { ElMessage, ElMessageBox } = ElementPlus;
+
+        const app = createApp({
+            setup() {
+                // 加载状态
+                const loading = ref(true);
+
+                // 微信连接状态
+                const wechatStatus = ref({
+                    connected: false,
+                    text: '未连接',
+                    class: 'status-disconnected'
+                });
+
+                // 监控状态
+                const monitoringStatus = ref({
+                    active: false,
+                    text: '未启动',
+                    class: 'status-disconnected'
+                });
+
+                // 功能状态
+                const exportingContacts = ref(false);
+                const refreshingContacts = ref(false);
+                const chatMonitoring = ref(false);
+                const chatMonitoringLoading = ref(false);
+                const autoReplyEnabled = ref(false);
+                const autoReplyLoading = ref(false);
+                const exportingChats = ref(false);
+
+                // 弹窗状态
+                const showAutoReplySettings = ref(false);
+                const showBroadcastDialog = ref(false);
+                const showBroadcastHistory = ref(false);
+                const showAddFriendsPanel = ref(false);
+                const showFriendRequests = ref(false);
+                const showStatsDialog = ref(false);
+
+                // 统计数据
+                const contactStats = ref({
+                    total: 0,
+                    exported: 0
+                });
+
+                const chatStats = ref({
+                    monitored: 0,
+                    messages: 0
+                });
+
+                const replyStats = ref({
+                    rules: 0,
+                    replied: 0
+                });
+
+                const broadcastStats = ref({
+                    sent: 0,
+                    success: 0
+                });
+
+                const friendStats = ref({
+                    added: 0,
+                    pending: 0
+                });
+
+                const statsData = ref({
+                    operations: 0,
+                    efficiency: 0
+                });
+
+                // 获取pywebview API
+                const getPywebviewApi = () => {
+                    if (window.pywebview && window.pywebview.api) {
+                        return window.pywebview.api;
+                    } else if (window.parent && window.parent.pywebview && window.parent.pywebview.api) {
+                        return window.parent.pywebview.api;
+                    } else if (window.top && window.top.pywebview && window.top.pywebview.api) {
+                        return window.top.pywebview.api;
+                    }
+                    return null;
+                };
+
+                // 等待API就绪
+                const waitForApi = async () => {
+                    let api = getPywebviewApi();
+                    if (!api) {
+                        for (let i = 0; i < 5; i++) {
+                            await new Promise(resolve => setTimeout(resolve, 300));
+                            api = getPywebviewApi();
+                            if (api) break;
+                        }
+                        if (!api) {
+                            throw new Error('无法连接到后端API，请确保应用正常运行');
+                        }
+                    }
+                    return api;
+                };
+
+                // ==================== 功能方法 ====================
+
+                // 检查微信状态
+                const checkWechatStatus = async () => {
+                    try {
+                        const api = await waitForApi();
+                        const result = await api.check_wechat_status();
+
+                        if (result && result.success) {
+                            wechatStatus.value = {
+                                connected: true,
+                                text: '已连接',
+                                class: 'status-connected'
+                            };
+                        } else {
+                            wechatStatus.value = {
+                                connected: false,
+                                text: '连接失败',
+                                class: 'status-disconnected'
+                            };
+                        }
+                    } catch (error) {
+                        wechatStatus.value = {
+                            connected: false,
+                            text: '检查失败',
+                            class: 'status-disconnected'
+                        };
+                    }
+                };
+
+                // 导出联系人
+                const exportContacts = async () => {
+                    exportingContacts.value = true;
+
+                    try {
+                        const api = await waitForApi();
+                        const result = await api.export_contacts();
+
+                        if (result && result.success) {
+                            contactStats.value.exported = result.count || 0;
+                            ElMessage.success(`成功导出 ${result.count || 0} 个联系人！`);
+                        } else {
+                            throw new Error(result?.message || '导出联系人失败');
+                        }
+                    } catch (error) {
+                        ElMessage.error('导出联系人失败：' + error.message);
+                    } finally {
+                        exportingContacts.value = false;
+                    }
+                };
+
+                // 刷新联系人
+                const refreshContacts = async () => {
+                    refreshingContacts.value = true;
+
+                    try {
+                        const api = await waitForApi();
+                        const result = await api.refresh_contacts();
+
+                        if (result && result.success) {
+                            contactStats.value.total = result.count || 0;
+                            ElMessage.success('联系人列表已刷新');
+                        } else {
+                            throw new Error(result?.message || '刷新联系人失败');
+                        }
+                    } catch (error) {
+                        ElMessage.error('刷新联系人失败：' + error.message);
+                    } finally {
+                        refreshingContacts.value = false;
+                    }
+                };
+
+                // 切换聊天监听
+                const toggleChatMonitoring = async () => {
+                    chatMonitoringLoading.value = true;
+
+                    try {
+                        const api = await waitForApi();
+
+                        if (chatMonitoring.value) {
+                            // 停止监听
+                            const result = await api.stop_chat_monitoring();
+                            if (result && result.success) {
+                                chatMonitoring.value = false;
+                                monitoringStatus.value = {
+                                    active: false,
+                                    text: '已停止',
+                                    class: 'status-disconnected'
+                                };
+                                ElMessage.success('聊天监听已停止');
+                            } else {
+                                throw new Error(result?.message || '停止监听失败');
+                            }
+                        } else {
+                            // 开始监听
+                            const result = await api.start_chat_monitoring();
+                            if (result && result.success) {
+                                chatMonitoring.value = true;
+                                monitoringStatus.value = {
+                                    active: true,
+                                    text: '监听中',
+                                    class: 'status-processing'
+                                };
+                                ElMessage.success('聊天监听已启动');
+                            } else {
+                                throw new Error(result?.message || '启动监听失败');
+                            }
+                        }
+                    } catch (error) {
+                        ElMessage.error('操作失败：' + error.message);
+                    } finally {
+                        chatMonitoringLoading.value = false;
+                    }
+                };
+
+                // 导出聊天记录
+                const exportChatLogs = async () => {
+                    exportingChats.value = true;
+
+                    try {
+                        const api = await waitForApi();
+                        const result = await api.export_chat_logs();
+
+                        if (result && result.success) {
+                            ElMessage.success('聊天记录导出成功！');
+                        } else {
+                            throw new Error(result?.message || '导出聊天记录失败');
+                        }
+                    } catch (error) {
+                        ElMessage.error('导出聊天记录失败：' + error.message);
+                    } finally {
+                        exportingChats.value = false;
+                    }
+                };
+
+                // 切换自动回复
+                const toggleAutoReply = async () => {
+                    autoReplyLoading.value = true;
+
+                    try {
+                        const api = await waitForApi();
+
+                        if (autoReplyEnabled.value) {
+                            // 关闭自动回复
+                            const result = await api.stop_auto_reply();
+                            if (result && result.success) {
+                                autoReplyEnabled.value = false;
+                                ElMessage.success('自动回复已关闭');
+                            } else {
+                                throw new Error(result?.message || '关闭自动回复失败');
+                            }
+                        } else {
+                            // 启用自动回复
+                            const result = await api.start_auto_reply();
+                            if (result && result.success) {
+                                autoReplyEnabled.value = true;
+                                ElMessage.success('自动回复已启用');
+                            } else {
+                                throw new Error(result?.message || '启用自动回复失败');
+                            }
+                        }
+                    } catch (error) {
+                        ElMessage.error('操作失败：' + error.message);
+                    } finally {
+                        autoReplyLoading.value = false;
+                    }
+                };
+
+                // 导出统计报告
+                const exportStats = async () => {
+                    try {
+                        const api = await waitForApi();
+                        const result = await api.export_stats();
+
+                        if (result && result.success) {
+                            ElMessage.success('统计报告导出成功！');
+                        } else {
+                            throw new Error(result?.message || '导出统计报告失败');
+                        }
+                    } catch (error) {
+                        ElMessage.error('导出统计报告失败：' + error.message);
+                    }
+                };
+
+                // 加载统计数据
+                const loadStats = async () => {
+                    try {
+                        const api = await waitForApi();
+                        const result = await api.get_automation_stats();
+
+                        if (result && result.success) {
+                            const data = result.data || {};
+                            contactStats.value = {
+                                total: data.total_contacts || 0,
+                                exported: data.exported_contacts || 0
+                            };
+                            chatStats.value = {
+                                monitored: data.monitored_chats || 0,
+                                messages: data.recorded_messages || 0
+                            };
+                            replyStats.value = {
+                                rules: data.reply_rules || 0,
+                                replied: data.auto_replies || 0
+                            };
+                            broadcastStats.value = {
+                                sent: data.broadcast_sent || 0,
+                                success: data.broadcast_success_rate || 0
+                            };
+                            friendStats.value = {
+                                added: data.friends_added || 0,
+                                pending: data.friend_requests_pending || 0
+                            };
+                            statsData.value = {
+                                operations: data.total_operations || 0,
+                                efficiency: data.efficiency_improvement || 0
+                            };
+                        }
+                    } catch (error) {
+                        console.error('加载统计数据失败:', error);
+                    }
+                };
+
+                // 初始化
+                onMounted(async () => {
+                    try {
+                        await checkWechatStatus();
+                        await loadStats();
+                    } catch (error) {
+                        console.error('初始化失败:', error);
+                    } finally {
+                        loading.value = false;
+                    }
+                });
+
+                return {
+                    // 状态数据
+                    loading,
+                    wechatStatus,
+                    monitoringStatus,
+                    exportingContacts,
+                    refreshingContacts,
+                    chatMonitoring,
+                    chatMonitoringLoading,
+                    autoReplyEnabled,
+                    autoReplyLoading,
+                    exportingChats,
+                    showAutoReplySettings,
+                    showBroadcastDialog,
+                    showBroadcastHistory,
+                    showAddFriendsPanel,
+                    showFriendRequests,
+                    showStatsDialog,
+                    contactStats,
+                    chatStats,
+                    replyStats,
+                    broadcastStats,
+                    friendStats,
+                    statsData,
+
+                    // 方法
+                    checkWechatStatus,
+                    exportContacts,
+                    refreshContacts,
+                    toggleChatMonitoring,
+                    exportChatLogs,
+                    toggleAutoReply,
+                    exportStats,
+                    loadStats
+                };
+            }
+        });
+
+        // 注册所有图标
+        Object.keys(ElementPlusIconsVue).forEach(key => {
+            app.component(key, ElementPlusIconsVue[key]);
+        });
+
+        app.use(ElementPlus).mount('#app');
+    </script>
+</body>
+</html>

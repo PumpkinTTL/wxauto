@@ -1,0 +1,2771 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>达人数据提取</title>
+    <!-- Element Plus CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <!-- Element Plus Icons -->
+    <script src="//cdn.jsdelivr.net/npm/@element-plus/icons-vue"></script>
+    <!-- Animate.css -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <!-- 文件处理库 CDN -->
+    <script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://unpkg.com/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+    <style>
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background: #f8fafc;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+
+        /* 控制台容器美化滚动条 */
+        .console-container::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .console-container::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 2px;
+        }
+
+        .console-container::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.5);
+            border-radius: 2px;
+            transition: background 0.2s ease;
+        }
+
+        .console-container::-webkit-scrollbar-thumb:hover {
+            background: rgba(148, 163, 184, 0.8);
+        }
+
+    
+
+        /* 子界面元素动画 - 更流畅的进入动画 */
+        @keyframes smoothSlideIn {
+            0% {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+
+            100% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .animate-slide-in {
+            animation: smoothSlideIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .animate-delay-1 {
+            animation-delay: 0.1s;
+        }
+
+        .animate-delay-2 {
+            animation-delay: 0.2s;
+        }
+
+        .animate-delay-3 {
+            animation-delay: 0.3s;
+        }
+
+        .animate-delay-4 {
+            animation-delay: 0.4s;
+        }
+
+        /* 上传区域样式 */
+        .upload-area {
+            border: 1px dashed #d1d5db;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            background: #fafbfc;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .upload-area:hover {
+            border-color: #3b82f6;
+            background: #f0f9ff;
+        }
+
+        .upload-area.dragover {
+            border-color: #3b82f6;
+            background: #eff6ff;
+        }
+
+        /* 搜索卡片样式 */
+        .search-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        /* 表格卡片样式 */
+        .table-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app" style="padding: 24px;">
+
+
+        <!-- 工作日志 -->
+        <div class="animate-slide-in animate-delay-1" style="margin-bottom: 24px;"
+            v-if="workLogs.length > 0">
+            <el-card shadow="hover" style="border-radius: 12px;">
+                <template #header>
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; align-items: center;">
+                            <el-icon size="18" style="margin-right: 8px; color: #10b981;">
+                                <Document />
+                            </el-icon>
+                            <span style="font-weight: 600; font-size: 16px;">工作日志</span>
+                            <el-tag type="info" size="small" style="margin-left: 12px;">共 {{ workLogs.length }}
+                                条记录</el-tag>
+                        </div>
+                        <el-button size="small" @click="clearLogs" v-if="workLogs.length > 0">
+                            <el-icon style="margin-right: 4px;">
+                                <Delete />
+                            </el-icon>
+                            清空日志
+                        </el-button>
+                    </div>
+                </template>
+
+                <!-- 正在处理状态 -->
+                <div v-if="isProcessingFile" style="padding: 20px; text-align: center;">
+                    <el-icon size="24" style="color: #3b82f6; margin-bottom: 12px;" class="is-loading">
+                        <Loading />
+                    </el-icon>
+                    <div style="font-size: 16px; color: #374151; margin-bottom: 8px;">
+                        {{ consoleOutput.message || '正在处理Excel文件...' }}
+                    </div>
+                    <div style="font-size: 14px; color: #6b7280;">{{ selectedFileName }}</div>
+                </div>
+
+                <!-- 日志列表 -->
+                <div v-if="workLogs.length > 0" style="max-height: 300px; overflow-y: auto;">
+                    <div v-for="log in workLogs" :key="log.id"
+                        style="border-bottom: 1px solid #f0f0f0; padding: 16px 0;"
+                        :style="{ 'border-bottom': workLogs.indexOf(log) === workLogs.length - 1 ? 'none' : '1px solid #f0f0f0' }">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <div style="flex: 1;">
+                                <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                                    <el-icon size="16" style="margin-right: 8px;"
+                                        :style="{ color: log.status === 'success' ? '#10b981' : '#ef4444' }">
+                                        <CircleCheck v-if="log.status === 'success'" />
+                                        <CircleClose v-else />
+                                    </el-icon>
+                                    <span style="font-weight: 600; font-size: 14px;">{{ log.filename }}</span>
+                                    <el-tag :type="log.status === 'success' ? 'success' : 'danger'" size="small"
+                                        style="margin-left: 8px;">
+                                        {{ log.status === 'success' ? '处理成功' : '处理失败' }}
+                                    </el-tag>
+                                    <span style="font-size: 12px; color: #9ca3af; margin-left: 8px;">{{ log.time
+                                        }}</span>
+                                </div>
+
+                                <div v-if="log.status === 'success' && log.details"
+                                    style="font-size: 13px; color: #6b7280;">
+                                    工作表: {{ log.details.currentSheet }} |
+                                    数据行数: {{ log.details.totalRows }} |
+                                    列数: {{ log.details.columns }} |
+                                    超链接: {{ log.details.hyperlinksCount }}个 |
+                                    提取ID: {{ log.details.sqliteReadyCount }}个 |
+                                    <span :style="{ color: log.details.dbInsertSuccess ? '#10b981' : '#ef4444' }">
+                                        数据库: {{ log.details.dbInsertSuccess ? '插入成功' : '插入失败' }}
+                                    </span>
+                                </div>
+
+                                <div v-if="log.status === 'error'" style="font-size: 13px; color: #ef4444;">
+                                    错误: {{ log.error }}
+                                </div>
+                            </div>
+
+                            <div style="margin-left: 16px;">
+                                <el-button v-if="log.status === 'success'" type="primary" size="small" text
+                                    @click="viewLogDetails(log)">
+                                    详情
+                                </el-button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </el-card>
+        </div>
+
+        <!-- 集成功能控制面板 -->
+        <div class="animate-slide-in animate-delay-1" style="margin-bottom: 24px;">
+            <el-row :gutter="16" style="row-gap: 16px;">
+                <!-- 蝉妈妈登录卡片 -->
+                <el-col :xs="24" :sm="12" :md="8" :lg="6">
+                    <el-card shadow="hover" style="border-radius: 16px; height: 100%; background: #ffffff; border: 1px solid #e5e7eb; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+                        <template #header>
+                            <div style="display: flex; align-items: center; gap: 12px; padding: 4px 0;">
+                                <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #ff6b35, #f7931e); border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(255, 107, 53, 0.3);">
+                                    <el-icon size="20" style="color: white;">
+                                        <Key />
+                                    </el-icon>
+                                </div>
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 600; font-size: 15px; color: #1f2937;">蝉妈妈登录</div>
+                                    <div style="font-size: 12px; color: #6b7280;">数据源连接</div>
+                                </div>
+                                <el-tag v-if="cmmLoginStatus === 'logged_in'" type="success" size="small" effect="light" style="border-radius: 20px;">
+                                    <el-icon size="12" style="margin-right: 4px;"><Connection /></el-icon>
+                                
+                                    已连接
+                                </el-tag>
+                                <el-tag v-else type="warning" size="small" effect="light" style="border-radius: 20px;">
+                                    <el-icon size="12" style="margin-right: 4px;"><Warning /></el-icon>
+                                    未连接
+                                </el-tag>
+                            </div>
+                        </template>
+
+                        <!-- 未登录状态 -->
+                        <div v-if="cmmLoginStatus !== 'logged_in'" style="padding: 8px 0;">
+                            <el-input
+                                v-model="cmmLoginForm.username"
+                                placeholder="用户名/手机号"
+                                size="small"
+                                style="margin-bottom: 8px;"
+                                :disabled="cmmLoginLoading">
+                                <template #prefix>
+                                    <el-icon><User /></el-icon>
+                                </template>
+                            </el-input>
+
+                            <el-input
+                                v-model="cmmLoginForm.password"
+                                type="password"
+                                placeholder="密码"
+                                size="small"
+                                style="margin-bottom: 8px;"
+                                :disabled="cmmLoginLoading"
+                                @keyup.enter="handleCmmLogin">
+                                <template #prefix>
+                                    <el-icon><Lock /></el-icon>
+                                </template>
+                            </el-input>
+
+                            <el-button
+                                size="small"
+                                type="primary"
+                                :loading="cmmLoginLoading"
+                                @click="handleCmmLogin"
+                                :disabled="!cmmLoginForm.username || !cmmLoginForm.password"
+                                style="width: 100%;">
+                                <el-icon style="margin-right: 4px;">
+                                    <CircleCheck />
+                                </el-icon>
+                                登录
+                            </el-button>
+
+                            <!-- 登录提示 -->
+                            <div v-if="cmmLoginMessage && cmmLoginStatus !== 'logged_in'" style="margin-top: 8px;">
+                                <el-text type="danger" size="small">
+                                    <el-icon><Warning /></el-icon>
+                                    {{ cmmLoginMessage }}
+                                </el-text>
+                            </div>
+                        </div>
+
+                        <!-- 已登录状态 -->
+                        <div v-else style="padding: 8px 0;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                <el-icon size="14" style="color: #10b981;">
+                                    <CircleCheck />
+                                </el-icon>
+                                <span style="font-size: 13px; color: #10b981;">{{ cmmLoginMessage || 'Token可用' }}</span>
+                            </div>
+                            <div style="font-size: 12px; color: #6b7280; margin-bottom: 8px;">
+                                连接正常，可以开始处理
+                            </div>
+                            <el-button size="small" type="warning" @click="handleCmmLogout" style="width: 100%;">
+                                <el-icon style="margin-right: 4px;">
+                                    <Close />
+                                </el-icon>
+                                退出登录
+                            </el-button>
+                        </div>
+                    </el-card>
+                </el-col>
+
+                <!-- 文件上传卡片 -->
+                <el-col :xs="24" :sm="12" :md="8" :lg="6">
+                    <el-card shadow="hover" style="border-radius: 16px; height: 100%; background: #ffffff; border: 1px solid #e5e7eb; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+                        <template #header>
+                            <div style="display: flex; align-items: center; gap: 12px; padding: 4px 0;">
+                                <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #3b82f6, #1e40af); border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);">
+                                    <el-icon size="20" style="color: white;">
+                                        <Upload />
+                                    </el-icon>
+                                </div>
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 600; font-size: 15px; color: #1f2937;">文件上传</div>
+                                    <div style="font-size: 12px; color: #6b7280;">Excel数据导入</div>
+                                </div>
+                                <el-tag v-if="selectedFileName" type="success" size="small" effect="light" style="border-radius: 20px;">
+                                    <el-icon size="12" style="margin-right: 4px;"><Document/></el-icon>
+                                    已选择
+                                </el-tag>
+                            </div>
+                        </template>
+
+                        <div style="padding: 8px 0;">
+                            <!-- 集成原来的拖拽上传 -->
+                            <!-- 未选择文件时显示上传区域 -->
+                            <div v-if="!selectedFileName">
+                                <el-upload
+                                    ref="uploadRef"
+                                    class="upload-demo"
+                                    drag
+                                    :auto-upload="false"
+                                    :on-change="handleFileChange"
+                                    :show-file-list="false"
+                                    accept=".xlsx,.xls"
+                                    :limit="1"
+                                    :disabled="cmmLoginStatus !== 'logged_in'"
+                                    style="width: 100%;">
+                                    <div class="upload-area" style="padding: 16px; text-align: center;">
+                                        <el-icon size="24" :style="{ color: cmmLoginStatus === 'logged_in' ? '#3b82f6' : '#9ca3af', marginBottom: '8px' }">
+                                            <Upload />
+                                        </el-icon>
+                                        <div style="font-size: 12px; margin-bottom: 4px;" :style="{ color: cmmLoginStatus === 'logged_in' ? '#374151' : '#9ca3af' }">
+                                            拖拽Excel文件到此处
+                                        </div>
+                                        <div style="font-size: 10px;" :style="{ color: cmmLoginStatus === 'logged_in' ? '#6b7280' : '#9ca3af' }">
+                                            {{ cmmLoginStatus === 'logged_in' ? '或点击选择文件' : '请先登录蝉妈妈账号' }}
+                                        </div>
+                                        <div style="font-size: 10px; color: #9ca3af; margin-top: 4px;">
+                                            支持 .xlsx, .xls 格式
+                                        </div>
+                                    </div>
+                                </el-upload>
+                            </div>
+
+                            <!-- 已选择文件时显示文件信息和操作按钮 -->
+                            <div v-else style="padding: 16px; text-align: center;">
+                                <el-icon size="24" style="color: #10b981; margin-bottom: 8px;">
+                                    <DocumentCopy />
+                                </el-icon>
+                                <div style="font-size: 12px; color: #374151; margin-bottom: 8px; font-weight: 500;">
+                                    {{ selectedFileName }}
+                                </div>
+                                <div style="font-size: 10px; color: #6b7280; margin-bottom: 12px;">
+                                    文件已选择，可以开始处理
+                                </div>
+
+                                <!-- 操作按钮 -->
+                                <div style="display: flex; gap: 8px; justify-content: center;">
+                                    <el-button
+                                        size="small"
+                                        type="primary"
+                                        @click="startProcessFile"
+                                        :disabled="isProcessingFile"
+                                        :loading="isProcessingFile">
+                                        <el-icon style="margin-right: 4px;">
+                                            <Printer />
+                                        </el-icon>
+                                        {{ isProcessingFile ? '处理中...' : '开始处理' }}
+                                    </el-button>
+                                    <el-button
+                                        size="small"
+                                        @click="resetFileSelection"
+                                        :disabled="isProcessingFile">
+                                        <el-icon style="margin-right: 4px;">
+                                            <Clock />
+                                        </el-icon>
+                                        重新选择
+                                    </el-button>
+                                </div>
+                            </div>
+                        </div>
+                    </el-card>
+                </el-col>
+
+                <!-- 爬取配置卡片 -->
+                <el-col :xs="24" :sm="12" :md="8" :lg="6">
+                    <el-card shadow="hover" style="border-radius: 16px; height: 100%; background: linear-gradient(135deg, #f8fafc, #f1f5f9); border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+                        <template #header>
+                            <div style="display: flex; align-items: center; gap: 12px; padding: 4px 0;">
+                                <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #6366f1, #8b5cf6); border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);">
+                                    <el-icon size="20" style="color: white;">
+                                        <Setting />
+                                    </el-icon>
+                                </div>
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 600; font-size: 15px; color: #1f2937;">爬取配置</div>
+                                    <div style="font-size: 12px; color: #6b7280;">性能优化设置</div>
+                                </div>
+                                <el-button
+                                    size="small"
+                                    type="primary"
+                                    :icon="RefreshRight"
+                                    @click="refreshCrawlConfig"
+                                    style="padding: 4px 8px; font-size: 10px; border-radius: 8px;">
+                                    刷新
+                                </el-button>
+                            </div>
+                        </template>
+
+                        <div style="padding: 8px 0;">
+                            <!-- 代理开关 -->
+                            <div style="margin-bottom: 12px;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                                    <label style="font-size: 12px; color: #6b7280; display: flex; align-items: center;">
+                                        <el-icon size="12" style="margin-right: 4px;">
+                                            <Connection />
+                                        </el-icon>
+                                        代理模式
+                                    </label>
+                                    <el-switch
+                                        v-model="crawlConfig.proxyEnabled"
+                                        size="small"
+                                        :active-color="crawlConfig.proxyEnabled ? '#10b981' : '#d1d5db'"
+                                        @change="handleProxyToggle">
+                                    </el-switch>
+                                </div>
+                                <div style="font-size: 10px; color: #9ca3af;">
+                                    <span v-if="crawlConfig.proxyEnabled" style="color: #10b981;">
+                                        ✅ 已启用 - 使用代理池自动切换
+                                    </span>
+                                    <span v-else style="color: #6b7280;">
+                                        ❌ 已禁用 - 使用直连IP + 休眠控制
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- 非代理模式配置 -->
+                            <div v-if="!crawlConfig.proxyEnabled" style="margin-bottom: 12px; padding: 12px; background: linear-gradient(135deg, #f0f9ff, #e0f2fe); border-radius: 8px; border: 1px solid #bae6fd;">
+                                <div style="font-size: 11px; color: #0369a1; margin-bottom: 8px; font-weight: 600;">
+                                    <el-icon size="10" style="margin-right: 2px;">
+                                        <Timer />
+                                    </el-icon>
+                                    直连模式配置
+                                </div>
+
+                                <!-- 单个数据休眠时间 -->
+                                <div style="margin-bottom: 8px;">
+                                    <label style="display: block; font-size: 10px; color: #0369a1; margin-bottom: 4px;">
+                                        单个数据休眠 (秒)
+                                    </label>
+                                    <el-input-number
+                                        v-model="crawlConfig.waitTime"
+                                        :min="0"
+                                        :max="30"
+                                        size="small"
+                                        style="width: 100%;"
+                                        controls-position="right">
+                                    </el-input-number>
+                                </div>
+
+                                <!-- 爬取多少条后休眠 -->
+                                <div style="margin-bottom: 8px;">
+                                    <label style="display: block; font-size: 10px; color: #0369a1; margin-bottom: 4px;">
+                                        爬取多少条后大休眠
+                                    </label>
+                                    <el-input-number
+                                        v-model="crawlConfig.countWait"
+                                        :min="1"
+                                        :max="100"
+                                        size="small"
+                                        style="width: 100%;"
+                                        controls-position="right">
+                                    </el-input-number>
+                                </div>
+
+                                <!-- 大休眠时间 -->
+                                <div style="margin-bottom: 8px;">
+                                    <label style="display: block; font-size: 10px; color: #0369a1; margin-bottom: 4px;">
+                                        大休眠时间 (秒)
+                                    </label>
+                                    <el-input-number
+                                        v-model="crawlConfig.countWaitTime"
+                                        :min="10"
+                                        :max="300"
+                                        size="small"
+                                        style="width: 100%;"
+                                        controls-position="right">
+                                    </el-input-number>
+                                </div>
+
+                                <!-- 保存配置按钮 -->
+                                <el-button
+                                    size="small"
+                                    type="primary"
+                                    @click="saveCrawlConfig"
+                                    style="width: 100%; font-size: 10px; margin-top: 4px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); border: none;">
+                                    保存配置
+                                </el-button>
+                            </div>
+
+                            <!-- 代理状态显示 -->
+                            <div v-if="crawlConfig.proxyEnabled" style="margin-bottom: 12px; padding: 12px; background: linear-gradient(135deg, #f0fdf4, #dcfce7); border-radius: 8px; border: 1px solid #bbf7d0;">
+                                <div style="font-size: 11px; color: #166534; margin-bottom: 4px; font-weight: 600;">
+                                    <el-icon size="10" style="margin-right: 2px;">
+                                        <Monitor />
+                                    </el-icon>
+                                    代理状态
+                                </div>
+                                <div style="font-size: 10px; color: #166534; margin-bottom: 6px;">
+                                    当前代理: {{ proxyStatus.current_proxy === '未设置' ? '未设置' : (proxyStatus.current_proxy || '未设置') }}<br>
+                                    请求计数: {{ proxyStatus.request_count || 0 }}<br>
+                                    轮换间隔: {{ proxyStatus.rotation_interval || 10 }}条
+                                </div>
+
+                                <!-- 代理管理按钮 -->
+                                <div style="display: flex; gap: 4px; margin-top: 6px;">
+                                    <!-- <el-button
+                                        size="small"
+                                        type="warning"
+                                        :icon="Delete"
+                                        @click="clearProxyConfig"
+                                        style="font-size: 10px; padding: 2px 6px;">
+                                        清除配置
+                                    </el-button>
+                                    <el-button
+                                        size="small"
+                                        type="danger"
+                                        :icon="RefreshRight"
+                                        @click="resetProxySystem"
+                                        style="font-size: 10px; padding: 2px 6px;">
+                                        重置系统
+                                    </el-button> -->
+                                </div>
+                            </div>
+
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <el-icon size="12" style="color: #10b981;">
+                                    <InfoFilled />
+                                </el-icon>
+                                <span  style="font-size: 11px; color: #10b981;">
+                                   代理模式不休眠,也可能会风控,但是两个模式都可选处理好的数据暂存,下次会直接跳过已保存的数据
+                                </span>
+                            </div>
+                        </div>
+                    </el-card>
+                </el-col>
+
+                <!-- 工作状态卡片 -->
+                <el-col :xs="24" :sm="12" :md="8" :lg="6">
+                    <el-card shadow="hover" style="border-radius: 16px; height: 100%; background: #ffffff; border: 1px solid #e5e7eb; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+                        <template #header>
+                            <div style="display: flex; align-items: center; gap: 12px; padding: 4px 0;">
+                                <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);">
+                                    <el-icon size="20" style="color: white;">
+                                        <Monitor />
+                                    </el-icon>
+                                </div>
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 600; font-size: 15px; color: #1f2937;">工作状态</div>
+                                    <div style="font-size: 12px; color: #6b7280;">实时监控</div>
+                                </div>
+                            </div>
+                        </template>
+
+                        <div style="padding: 8px 0;">
+                            <div v-if="consoleOutput.is_processing || isProcessingFile">
+                                <!-- 处理状态头部 -->
+                                <div style="text-align: center; margin-bottom: 12px;">
+                                    <el-icon size="20" style="color: #3b82f6; margin-bottom: 8px;" class="is-loading">
+                                        <Loading />
+                                    </el-icon>
+                                    <div style="font-size: 12px; color: #3b82f6; margin-bottom: 8px;">正在处理...</div>
+
+                                    <!-- 进度条和取消按钮 -->
+                                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                                        <el-progress
+                                            :percentage="consoleOutput.progress || processingProgress.percentage"
+                                            :stroke-width="4"
+                                            style="flex: 1;">
+                                        </el-progress>
+                                        <el-button
+                                            v-if="consoleOutput.is_processing || isProcessingFile"
+                                            type="danger"
+                                            size="small"
+                                            @click="cancelProcessing"
+                                            style="padding: 4px 8px; font-size: 10px;"
+                                            title="取消当前处理"
+                                        >
+                                            <el-icon><Close /></el-icon>
+                                            取消
+                                        </el-button>
+                                    </div>
+
+                                    <!-- 当前状态 -->
+                                    <div style="font-size: 10px; color: #6b7280; margin-bottom: 4px;">
+                                        {{ consoleOutput.current_message || processingProgress.message }}
+                                    </div>
+
+                                    <div style="font-size: 10px; color: #6b7280;">{{ selectedFileName }}</div>
+                                </div>
+
+                                <!-- 控制台输出 -->
+                                <div style="border-top: 1px solid #e5e7eb; padding-top: 8px;">
+                                    <div style="font-size: 10px; color: #6b7280; margin-bottom: 4px; display: flex; align-items: center; gap: 4px;">
+                                        <el-icon size="12"><Monitor /></el-icon>
+                                        控制台输出:
+                                        <span v-if="consoleOutput.logs.length > 0" style="color: #10b981; font-size: 9px;">({{ consoleOutput.logs.length }}条)</span>
+                                    </div>
+                                    <div
+                                        ref="consoleLogContainer"
+                                        style="
+                                            height: 100px;
+                                            overflow-y: auto;
+                                            padding: 8px;
+                                            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+                                            position: relative;
+                                        "
+                                        class="console-container"
+                                    >
+                                        <div
+                                            v-for="(log, index) in consoleOutput.logs.slice(-15)"
+                                            :key="index"
+                                            style="
+                                                font-size: 10px;
+                                                line-height: 1.4;
+                                                margin-bottom: 3px;
+                                                padding: 4px 6px;
+                                                border-radius: 4px;
+                                                transition: all 0.2s ease;
+                                                word-wrap: break-word;
+                                                overflow-wrap: break-word;
+                                                white-space: pre-wrap;
+                                            "
+                                            :style="{
+                                                color: getLogColor(log.type),
+                                                borderLeft: `3px solid ${getLogColor(log.type)}`
+                                            }"
+                                        >
+                                            <span style="color: #64748b; font-size: 9px;">[{{ log.time_str }}]</span>
+                                            <span style="margin-left: 6px;">{{ log.message }}</span>
+                                        </div>
+                                        <div v-if="consoleOutput.logs.length === 0" style="
+                                            font-size: 10px;
+                                            color: #64748b;
+                                            text-align: center;
+                                            padding: 20px;
+                                            display: flex;
+                                            flex-direction: column;
+                                            align-items: center;
+                                            gap: 4px;
+                                        ">
+                                            <el-icon size="16"><Loading /></el-icon>
+                                            等待控制台输出...
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div v-else-if="workLogs.length > 0">
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                    <el-icon size="14" style="color: #10b981;">
+                                        <CircleCheck />
+                                    </el-icon>
+                                    <span style="font-size: 12px; color: #10b981;">处理完成</span>
+                                </div>
+                                <div style="font-size: 11px; color: #6b7280;">
+                                    共处理 {{ workLogs.length }} 个文件
+                                </div>
+                            </div>
+
+                            <div v-else style="text-align: center; color: #6b7280;">
+                                <el-icon size="20" style="margin-bottom: 8px;">
+                                    <DocumentCopy />
+                                </el-icon>
+                                <div style="font-size: 12px;">等待处理文件</div>
+                            </div>
+                        </div>
+                    </el-card>
+                </el-col>
+            </el-row>
+        </div>
+
+        <!-- 数据表格 -->
+        <div class="animate-slide-in animate-delay-1">
+            <el-card shadow="hover" class="table-card">
+                <template #header>
+                    <div
+                        style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+                        <div style="display: flex; align-items: center;">
+                            <el-icon size="18" style="margin-right: 8px; color: #3b82f6;">
+                                <Grid />
+                            </el-icon>
+                            <span style="font-weight: 600; font-size: 16px;">联系人数据列表</span>
+                            <el-tag type="info" size="small" style="margin-left: 12px;">共 {{ total }} 条数据</el-tag>
+                        </div>
+
+                        <!-- 搜索区域集成到表格头部 -->
+                        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                            <el-input v-model="searchForm.fileName" placeholder="文件名" clearable size="small"
+                                style="width: 120px;">
+                                <template #prefix>
+                                    <el-icon>
+                                        <Document />
+                                    </el-icon>
+                                </template>
+                            </el-input>
+                            <el-input v-model="searchForm.description" placeholder="简介信息" clearable size="small"
+                                style="width: 120px;">
+                                <template #prefix>
+                                    <el-icon>
+                                        <InfoFilled />
+                                    </el-icon>
+                                </template>
+                            </el-input>
+                            <el-input v-model="searchForm.phone" placeholder="手机号" clearable size="small"
+                                style="width: 120px;">
+                                <template #prefix>
+                                    <el-icon>
+                                        <Phone />
+                                    </el-icon>
+                                </template>
+                            </el-input>
+                            <el-input v-model="searchForm.wechat" placeholder="微信号" clearable size="small"
+                                style="width: 120px;">
+                                <template #prefix>
+                                    <el-icon>
+                                        <ChatDotRound />
+                                    </el-icon>
+                                </template>
+                            </el-input>
+                            <el-button size="small" @click="handleSearch" type="primary">
+                                <el-icon>
+                                    <Search />
+                                </el-icon>
+                                搜索
+                            </el-button>
+                            <el-button size="small" @click="resetSearch">
+                                <el-icon>
+                                    <Refresh />
+                                </el-icon>
+                                重置
+                            </el-button>
+                            <el-button size="small" @click="refreshData" type="info">
+                            
+                                <el-icon>
+                                    <Refresh />
+                                </el-icon>
+                                刷新
+                            </el-button>
+                            <el-dropdown @command="handleExportCommand">
+                                <el-button size="small" type="primary">
+                                    <el-icon>
+                                        <Download />
+                                    </el-icon>
+                                    导出
+                                   
+                                </el-button>
+                                <template #dropdown>
+                                    <el-dropdown-menu>
+                                        <el-dropdown-item command="csv">导出CSV文件</el-dropdown-item>
+                                        <el-dropdown-item command="xlsx">导出Excel文件</el-dropdown-item>
+                                        <!-- <el-dropdown-item command="csv_simple" divided>快速保存CSV到Downloads</el-dropdown-item>
+                                        <el-dropdown-item command="xlsx_simple">快速保存Excel到Downloads</el-dropdown-item> -->
+                                    </el-dropdown-menu>
+                                </template>
+                            </el-dropdown>
+                        </div>
+                    </div>
+                </template>
+                <el-table :data="tableData" style="width: 100%;" v-loading="tableLoading"
+                    element-loading-text="数据加载中..." stripe border :cell-style="{
+                        'white-space': 'nowrap',
+                        'overflow': 'hidden',
+                        'text-overflow': 'ellipsis',
+                        'padding': '8px 12px'
+                    }" :header-cell-style="{
+                        'white-space': 'nowrap',
+                        'overflow': 'hidden',
+                        'text-overflow': 'ellipsis'
+                    }">
+                    <el-table-column prop="id" label="ID" width="80" align="center"
+                        show-overflow-tooltip></el-table-column>
+                    <el-table-column prop="username" label="用户昵称" min-width="120"
+                        show-overflow-tooltip></el-table-column>
+                    <el-table-column prop="unique_id" label="抖音ID" min-width="120"
+                        show-overflow-tooltip></el-table-column>
+                    <el-table-column prop="cmm_id" label="蝉妈妈ID" min-width="180"
+                        show-overflow-tooltip></el-table-column>
+                    <el-table-column prop="intro" label="简介" min-width="200" show-overflow-tooltip></el-table-column>
+                    <el-table-column prop="code" label="联系方式" min-width="120" show-overflow-tooltip>
+                        <template #default="scope">
+                            <div v-if="scope.row.code" style="display: flex; align-items: center; gap: 4px;">
+                                <el-icon size="14" style="color: #10b981;">
+                                    <Message />
+                                </el-icon>
+                                <span style="color: #059669; font-weight: 500;">{{ scope.row.code }}</span>
+                            </div>
+                            <div v-else style="color: #9ca3af; font-size: 12px;">
+                                <el-icon size="12" style="margin-right: 2px;">
+                                    <Remove />
+                                </el-icon>
+                                未提取
+                            </div>
+                        </template>
+                    </el-table-column>
+                    <el-table-column prop="file_name" label="来源文件" min-width="120"
+                        show-overflow-tooltip></el-table-column>
+                    <el-table-column prop="create_time" label="创建时间" width="160"
+                        show-overflow-tooltip></el-table-column>
+                    <el-table-column label="操作" width="120" align="center">
+                        <template #default="scope">
+                            <el-button type="primary" size="small" text @click="viewDetail(scope.row)">
+                                <el-icon style="margin-right: 4px;">
+                                    <View />
+                                </el-icon>
+                                查看
+                            </el-button>
+                        </template>
+                    </el-table-column>
+                </el-table>
+                <!-- 分页 -->
+                <div style="text-align: center; margin-top: 16px;">
+                    <el-pagination v-model:current-page="currentPage" v-model:page-size="pageSize"
+                        :page-sizes="[5, 10, 20]" :total="total" layout="total, sizes, prev, pager, next, jumper"
+                        @size-change="handleSizeChange" @current-change="handleCurrentChange" background small />
+                </div>
+            </el-card>
+
+        </div>
+    </div>
+    <!-- Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Element Plus -->
+    <script src="https://unpkg.com/element-plus/dist/index.full.js"></script>
+    <!-- Element Plus Icons -->
+    <script src="https://unpkg.com/@element-plus/icons-vue/dist/index.iife.js"></script>
+
+    <script>
+        const { createApp, ref, reactive, onMounted } = Vue;
+        const { ElMessage, ElMessageBox } = ElementPlus;
+
+        const app = createApp({
+            setup() {
+                // 搜索表单
+                const searchForm = reactive({
+                    fileName: '',
+                    description: '',
+                    phone: '',
+                    wechat: ''
+                });
+
+                // 表格数据
+                const tableData = ref([]);
+
+                // 分页数据
+                const currentPage = ref(1);
+                const pageSize = ref(5);  // 前端显示：默认5条
+                const total = ref(0);
+                const tableLoading = ref(true);
+
+                // 数据库分页缓存策略
+                const dbPageSize = 200; // 数据库每页200条
+                const cachedData = ref([]); // 缓存的数据库数据
+                const currentDbPage = ref(1); // 当前数据库页码
+                const lastSearchParams = ref(null); // 上次搜索参数
+
+                // 文件选择相关
+                const selectedFileName = ref('');
+                const workLogs = ref([]);
+                const uploadRef = ref(null);
+                const isProcessingFile = ref(false);
+
+                // 蝉妈妈登录相关
+                const cmmLoginLoading = ref(false);
+                const cmmLoginMessage = ref('');
+                const cmmLoginForm = reactive({
+                    username: '',
+                    password: ''
+                });
+                const cmmLoginStatus = ref('not_logged_in'); // 'logged_in' 或 'not_logged_in'
+
+                // 爬取配置
+                const crawlConfig = reactive({
+                    proxyEnabled: true,  // 默认启用代理
+                    waitTime: 2,         // 单个数据休眠时间
+                    countWait: 10,       // 爬取多少条后大休眠
+                    countWaitTime: 30    // 大休眠时间
+                });
+
+                // 代理状态
+                const proxyStatus = ref({
+                    current_proxy: '未设置',
+                    request_count: 0,
+                    rotation_interval: 10,
+                    proxy_enabled: false,
+                    last_request_ip: '未设置'
+                });
+
+                // 进度跟踪
+                const processingProgress = ref({
+                    current: 0,
+                    total: 0,
+                    percentage: 0,
+                    estimatedTime: '计算中...',
+                    startTime: null
+                });
+
+                // 控制台输出
+                const consoleOutput = ref({
+                    logs: [],
+                    is_processing: false,
+                    current_status: 'idle',
+                    current_message: '',
+                    progress: 0,
+                    last_update: 0
+                });
+
+                // 控制台日志容器引用
+                const consoleLogContainer = ref(null);
+
+                // 进度监控定时器
+                let progressTimer = null;
+
+                // 处理取消标志
+                const processingCancelled = ref(false);
+
+                // 获取pywebview API
+                const getPywebviewApi = () => {
+                    if (window.pywebview && window.pywebview.api) {
+                        return window.pywebview.api;
+                    } else if (window.parent && window.parent.pywebview && window.parent.pywebview.api) {
+                        return window.parent.pywebview.api;
+                    } else if (window.top && window.top.pywebview && window.top.pywebview.api) {
+                        return window.top.pywebview.api;
+                    }
+                    return null;
+                };
+
+                // 获取控制台输出 - 调用update_processing_progress
+                const fetchConsoleOutput = async () => {
+                    try {
+                        const api = getPywebviewApi();
+                        if (api) {
+                            // 调用update_processing_progress获取实时控制台输出
+                            const output = await api.update_processing_progress();
+                            consoleOutput.value = output;
+
+                            // 自动滚动到底部
+                            nextTick(() => {
+                                if (consoleLogContainer.value) {
+                                    consoleLogContainer.value.scrollTop = consoleLogContainer.value.scrollHeight;
+                                }
+                            });
+                        }
+                    } catch (error) {
+                        console.error('获取控制台输出失败:', error);
+                    }
+                };
+
+                // 日志颜色函数
+                const getLogColor = (type) => {
+                    switch (type) {
+                        case 'success': return '#22c55e'; // 亮绿色
+                        case 'warning': return '#f59e0b'; // 橙色
+                        case 'error': return '#ef4444';   // 红色
+                        case 'info': return '#3b82f6';    // 蓝色
+                        default: return '#94a3b8';        // 浅灰色
+                    }
+                };
+
+
+
+                // 取消处理函数
+                const cancelProcessing = async () => {
+                    try {
+                        console.log('🛑 用户请求取消处理');
+
+                        // 显示取消中的loading
+                        const { ElLoading } = ElementPlus;
+                        const loadingInstance = ElLoading.service({
+                            lock: true,
+                            text: '正在取消处理，等待Python完成当前任务...',
+                            background: 'rgba(0, 0, 0, 0.7)'
+                        });
+
+                        // 设置取消标志
+                        processingCancelled.value = true;
+
+                        // 停止定时器
+                        if (progressTimer) {
+                            clearInterval(progressTimer);
+                            progressTimer = null;
+                        }
+
+                        // 调用后端取消接口
+                        const api = getPywebviewApi();
+                        if (api && typeof api.cancel_processing === 'function') {
+                            const result = await api.cancel_processing();
+                            console.log('取消处理结果:', result);
+                        }
+
+                        // 等待后端真正停止处理 - 监听控制台状态
+                        let waitCount = 0;
+                        const maxWait = 60; // 最多等待60秒，因为可能有直连请求
+
+                        console.log('⏳ 等待Python完成当前任务...');
+
+                        while (waitCount < maxWait) {
+                            await new Promise(resolve => setTimeout(resolve, 1000));
+                            waitCount++;
+
+                            // 更新loading文本显示等待进度
+                            if (loadingInstance && loadingInstance.setText) {
+                                loadingInstance.setText(`正在取消处理，等待Python完成当前任务... (${waitCount}s)`);
+                            }
+
+                            // 检查控制台状态
+                            await fetchConsoleOutput();
+
+                            // 如果后端已经停止处理，退出等待
+                            if (!consoleOutput.value.is_processing) {
+                                console.log('✅ Python已停止处理，取消完成');
+                                break;
+                            }
+
+                            console.log(`⏳ 等待Python停止处理... ${waitCount}/${maxWait}`);
+                        }
+
+                        if (waitCount >= maxWait) {
+                            console.log('⚠️ 等待超时，强制完成取消');
+                        }
+
+                        // 关闭loading
+                        loadingInstance.close();
+
+                        // 重置状态
+                        isProcessingFile.value = false;
+                        selectedFileName.value = '';
+
+                        // 显示取消完成消息
+                        ElMessage.success('处理已取消');
+
+                        console.log('✅ 取消处理完成');
+
+                    } catch (error) {
+                        console.error('取消处理失败:', error);
+                        ElMessage.error('取消处理失败');
+                    }
+                };
+
+                // 加载用户数据（初始化时使用）
+                const loadData = async (resetPage = false) => {
+                    tableLoading.value = true;
+                    await loadDataFromDB(resetPage);
+                    tableLoading.value = false;
+                };
+
+                // 数据库分页加载策略
+                const loadDataFromDB = async (resetPage = false, showLoading = true) => {
+                    if (resetPage) {
+                        currentPage.value = 1;
+                        cachedData.value = [];
+                        currentDbPage.value = 1;
+                    }
+
+                    // 显示loading
+                    if (showLoading) {
+                        tableLoading.value = true;
+                    }
+
+                    try {
+                        // 准备搜索参数
+                        const searchParams = {};
+                        if (searchForm.fileName && searchForm.fileName.trim()) {
+                            searchParams.fileName = searchForm.fileName.trim();
+                        }
+                        if (searchForm.description && searchForm.description.trim()) {
+                            searchParams.description = searchForm.description.trim();
+                        }
+                        if (searchForm.phone && searchForm.phone.trim()) {
+                            searchParams.phone = searchForm.phone.trim();
+                        }
+                        if (searchForm.wechat && searchForm.wechat.trim()) {
+                            searchParams.wechat = searchForm.wechat.trim();
+                        }
+
+                        // 检查搜索条件是否变化
+                        const searchParamsStr = JSON.stringify(searchParams);
+                        const lastSearchParamsStr = JSON.stringify(lastSearchParams.value);
+                        if (searchParamsStr !== lastSearchParamsStr) {
+                            // 搜索条件变化，清空缓存
+                            cachedData.value = [];
+                            currentDbPage.value = 1;
+                            lastSearchParams.value = searchParams;
+                        }
+
+                        // 计算前端需要显示的数据范围
+                        const startIndex = (currentPage.value - 1) * pageSize.value;
+                        const endIndex = startIndex + pageSize.value;
+
+                        // 检查缓存是否足够
+                        const needMoreData = endIndex > cachedData.value.length && cachedData.value.length < total.value;
+
+                        if (needMoreData || cachedData.value.length === 0) {
+                            // 需要从数据库获取更多数据
+                            const pywebviewApi = getPywebviewApi();
+
+                            if (pywebviewApi) {
+                                console.log(`🔄 从数据库获取第${currentDbPage.value}页数据（每页${dbPageSize}条）`);
+
+                                // 从数据库获取200条数据
+                                const result = await pywebviewApi.get_users_data(
+                                    currentDbPage.value,
+                                    dbPageSize, // 200条
+                                    Object.keys(searchParams).length > 0 ? searchParams : null
+                                );
+
+                                if (result.success) {
+                                    if (currentDbPage.value === 1) {
+                                        // 第一页，直接设置
+                                        cachedData.value = result.data || [];
+                                        total.value = result.total || 0;
+                                    } else {
+                                        // 后续页，追加到缓存
+                                        cachedData.value = [...cachedData.value, ...(result.data || [])];
+                                    }
+                                    currentDbPage.value++;
+
+                                    console.log(`✅ 缓存数据: ${cachedData.value.length}条，总计: ${total.value}条`);
+                                } else {
+                                    ElMessage.error(`数据加载失败: ${result.message}`);
+                                    if (currentDbPage.value === 1) {
+                                        tableData.value = [];
+                                        total.value = 0;
+                                        return;
+                                    }
+                                }
+                            } else {
+                                ElMessage.error('系统API不可用');
+                                tableData.value = [];
+                                total.value = 0;
+                                return;
+                            }
+                        }
+
+                        // 从缓存中提取当前页数据
+                        tableData.value = cachedData.value.slice(startIndex, endIndex);
+                        console.log(`📄 显示第${currentPage.value}页: ${startIndex}-${endIndex - 1}，实际显示${tableData.value.length}条`);
+
+                    } catch (error) {
+                        ElMessage.error(`数据加载异常: ${error.message}`);
+                        tableData.value = [];
+                        total.value = 0;
+                    } finally {
+                        // 隐藏loading
+                        if (showLoading) {
+                            tableLoading.value = false;
+                        }
+                    }
+                };
+
+                // 刷新数据
+                const refreshData = () => {
+                    loadDataFromDB(true, true); // 显示loading
+                };
+
+                // 搜索功能
+                const handleSearch = () => {
+                    loadDataFromDB(true, true); // 重置到第一页，显示loading
+                };
+
+                const resetSearch = () => {
+                    Object.keys(searchForm).forEach(key => {
+                        searchForm[key] = '';
+                    });
+                    loadDataFromDB(true, true); // 重置到第一页，显示loading
+                };
+
+                // 分页功能
+                const handleSizeChange = (val) => {
+                    pageSize.value = val;
+                    currentPage.value = 1;
+                    loadDataFromDB(false, true); // 显示loading
+                };
+
+                const handleCurrentChange = (val) => {
+                    currentPage.value = val;
+
+                    // 检查是否需要预加载（当前显示接近缓存80%时）
+                    const startIndex = (currentPage.value - 1) * pageSize.value;
+                    const endIndex = startIndex + pageSize.value;
+                    const cacheUsagePercent = endIndex / cachedData.value.length;
+
+                    if (cacheUsagePercent >= 0.8 && cachedData.value.length < total.value) {
+                        console.log(`🚀 预加载触发: 使用率${(cacheUsagePercent * 100).toFixed(1)}%，预加载下一页数据`);
+                        // 异步预加载，不影响当前页面显示
+                        setTimeout(() => {
+                            loadDataFromDB(false, false); // 预加载不显示loading
+                        }, 100);
+                    } else {
+                        // 直接从缓存获取
+                        loadDataFromDB(false, false); // 分页跳转不显示loading
+                    }
+                };
+
+                // 蝉妈妈登录处理
+                const handleCmmLogin = async () => {
+                    // 验证输入
+                    if (!cmmLoginForm.username.trim()) {
+                        cmmLoginMessage.value = '请输入用户名';
+                        return;
+                    }
+                    if (!cmmLoginForm.password.trim()) {
+                        cmmLoginMessage.value = '请输入密码';
+                        return;
+                    }
+
+                    cmmLoginLoading.value = true;
+                    cmmLoginMessage.value = '';
+
+                    try {
+                        console.log('🔑 开始蝉妈妈登录...');
+                        const pywebviewApi = getPywebviewApi();
+
+                        if (!pywebviewApi) {
+                            throw new Error('系统API不可用，请确保在应用内运行');
+                        }
+
+                        // 检查方法是否存在
+                        if (typeof pywebviewApi.api_login_cmm !== 'function') {
+                            console.error('可用的API方法:', Object.keys(pywebviewApi));
+                            throw new Error('api_login_cmm方法不存在，请检查后端API');
+                        }
+
+                        console.log('调用 api_login_cmm...');
+                        const result = await pywebviewApi.api_login_cmm(cmmLoginForm.username, cmmLoginForm.password);
+                        console.log('登录结果:', result);
+
+                        if (result.success && result.logged_in) {
+                            // 登录成功
+                            cmmLoginStatus.value = 'logged_in';
+                            cmmLoginMessage.value = 'Token可用';
+
+                            // 保存登录凭据到localStorage
+                            saveCmmCredentials(cmmLoginForm.username, cmmLoginForm.password);
+
+                            ElMessage.success('蝉妈妈登录成功！');
+                            console.log('✅ 蝉妈妈登录成功，Token已获取');
+                        } else {
+                            // 登录失败
+                            cmmLoginStatus.value = 'not_logged_in';
+                            cmmLoginMessage.value = result.message || '登录失败，请检查用户名和密码';
+                        }
+
+                    } catch (error) {
+                        console.error('蝉妈妈登录异常:', error);
+                        cmmLoginStatus.value = 'not_logged_in';
+                        cmmLoginMessage.value = error.message;
+                    } finally {
+                        cmmLoginLoading.value = false;
+                    }
+                };
+
+                // 蝉妈妈退出登录
+                const handleCmmLogout = () => {
+                    ElMessageBox.confirm(
+                        '确定要退出蝉妈妈登录吗？',
+                        '确认退出',
+                        {
+                            confirmButtonText: '确定',
+                            cancelButtonText: '取消',
+                            type: 'warning',
+                        }
+                    ).then(async () => {
+                        try {
+                            // 调用后端删除数据库中的token
+                            const pywebviewApi = getPywebviewApi();
+                            if (pywebviewApi && typeof pywebviewApi.api_logout_cmm === 'function') {
+                                await pywebviewApi.api_logout_cmm();
+                                console.log('✅ 已清除数据库中的token');
+                            }
+                        } catch (error) {
+                            console.error('清除数据库token失败:', error);
+                        }
+
+                        // 立即更新前端状态
+                        cmmLoginStatus.value = 'not_logged_in';
+                        cmmLoginMessage.value = '';
+
+                        // 清除保存的凭据
+                        localStorage.removeItem('cmm_credentials');
+
+                        // 清空表单
+                        cmmLoginForm.username = '';
+                        cmmLoginForm.password = '';
+
+                        // 重置文件选择状态
+                        selectedFileName.value = '';
+                        window.selectedFileData = null;
+                        if (uploadRef.value) {
+                            uploadRef.value.clearFiles();
+                        }
+
+                        ElMessage.success('已退出蝉妈妈登录');
+                        console.log('✅ 已退出蝉妈妈登录，所有状态已重置');
+                    }).catch(() => {
+                        // 用户取消
+                    });
+                };
+
+                // 文件选择处理
+                const handleFileChange = (file) => {
+                    console.log('=== 文件选择开始 ===');
+
+                    // 首先检查蝉妈妈登录状态
+                    if (cmmLoginStatus.value !== 'logged_in') {
+                        ElMessage.error('请先登录蝉妈妈账号才能处理Excel文件');
+                        ElMessageBox.alert(
+                            '处理Excel文件需要蝉妈妈账号登录后获取达人详细信息。\n\n请先在左侧"蝉妈妈登录"卡片中登录您的账号。',
+                            '需要登录蝉妈妈',
+                            {
+                                confirmButtonText: '我知道了',
+                                type: 'warning'
+                            }
+                        );
+                        return;
+                    }
+
+                    console.log('file对象:', file);
+                    console.log('file.raw:', file.raw);
+
+                    if (!file || !file.raw) {
+                        console.error('文件对象无效');
+                        return;
+                    }
+
+                    console.log('文件信息:');
+                    console.log('- 名称:', file.name);
+                    console.log('- 大小:', file.size);
+                    console.log('- 类型:', file.type);
+
+                    selectedFileName.value = file.name;
+
+                    // 存储文件对象供后续处理使用
+                    window.selectedFileData = file;
+
+                    // 检查重复数据
+                    checkDuplicateDataFromFile(file);
+                };
+
+                // 处理风控保存
+                const handleRiskControlSave = async (result) => {
+                    try {
+                        // 显示风控提示
+                        const processedCount = result.processed_count || 0;
+                        const totalCount = result.total_count || 0;
+                        const serverMessage = result.server_message;
+
+                        let message = '检测到蝉妈妈账号触发风控或异地登录，token已失效。\n\n';
+
+                        // 添加服务器返回的消息
+                        if (serverMessage) {
+                            message += `📡 服务器消息: ${serverMessage}\n`;
+                            message += `💡 此数据来源蝉妈妈服务器\n\n`;
+                        }
+
+                        if (processedCount > 0) {
+                            message += `已成功处理 ${processedCount}/${totalCount} 条数据。\n\n`;
+                            message += '是否保存已处理的数据到数据库？\n';
+                            message += '保存后下次处理相同文件时将自动跳过这些数据。';
+
+                            // 询问是否保存
+                            try {
+                                await ElMessageBox.confirm(
+                                    message,
+                                    '风控 - 保存已处理数据',
+                                    {
+                                        confirmButtonText: '保存数据',
+                                        cancelButtonText: '不保存',
+                                        type: 'warning',
+                                        distinguishCancelAndClose: true
+                                    }
+                                );
+
+                                // 用户选择保存
+                                console.log('用户选择保存已处理数据');
+
+                                // 调用后端保存数据
+                                const api = getPywebviewApi();
+                                if (api && typeof api.save_partial_processed_data === 'function') {
+                                    const saveParams = {
+                                        processed_data: result.processed_data || [],
+                                        processed_count: processedCount,
+                                        total_count: totalCount
+                                    };
+                                    const saveResult = await api.save_partial_processed_data(saveParams);
+                                    if (saveResult && saveResult.success) {
+                                        ElMessage.success(`已保存 ${saveResult.inserted_count || processedCount} 条数据到数据库`);
+                                        console.log('数据保存成功:', saveResult);
+
+                                        // 保存成功后更新控制台状态
+                                        await fetchConsoleOutput();
+                                    } else {
+                                        ElMessage.error('保存数据失败: ' + (saveResult?.message || '未知错误'));
+                                    }
+                                } else {
+                                    ElMessage.error('保存功能不可用');
+                                }
+
+                            } catch (action) {
+                                if (action === 'cancel') {
+                                    console.log('用户选择不保存数据');
+                                    ElMessage.info('已处理的数据未保存');
+                                } else {
+                                    console.log('用户关闭对话框');
+                                }
+                            }
+                        } else {
+                            message += '未处理任何数据。';
+
+                            ElMessageBox.alert(
+                                message,
+                                '风控提示',
+                                {
+                                    confirmButtonText: '我知道了',
+                                    type: 'warning'
+                                }
+                            );
+                        }
+
+                        // 重置登录状态
+                        cmmLoginStatus.value = 'not_logged_in';
+                        cmmLoginMessage.value = '';
+
+                        // 显示重新登录提示
+                        ElNotification({
+                            title: '需要重新登录',
+                            message: '请重新登录蝉妈妈账号后再试。如果刚刚重新登录过就是风控，需要到蝉妈妈首页手动过机器验证。',
+                            type: 'warning',
+                            duration: 10000
+                        });
+
+                    } catch (error) {
+                        console.error('处理风控保存失败:', error);
+                        ElMessage.error('处理风控保存失败');
+                    }
+                };
+
+                // 从文件检查重复数据
+                const checkDuplicateDataFromFile = async (file) => {
+                    try {
+                        console.log('🔍 检查文件中的重复数据...');
+
+                        // 读取文件内容
+                        const reader = new FileReader();
+
+                        reader.onload = async (e) => {
+                            try {
+                                const data = new Uint8Array(e.target.result);
+                                const workbook = XLSX.read(data, { type: 'array' });
+                                const firstSheetName = workbook.SheetNames[0];
+                                const worksheet = workbook.Sheets[firstSheetName];
+                                const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+                                if (jsonData.length === 0) {
+                                    console.log('文件中没有数据');
+                                    return;
+                                }
+
+                                // 提取ID字段
+                                const ids = jsonData.map(row => {
+                                    // 尝试不同的ID字段名
+                                    return row['蝉妈妈ID'] || row['达人ID'] || row['ID'] || row['id'] ||
+                                           row['author_id'] || row['unique_id'] || row['抖音ID'];
+                                }).filter(id => id && id.toString().trim());
+
+                                if (ids.length === 0) {
+                                    console.log('文件中未找到有效的ID字段');
+                                    return;
+                                }
+
+                                console.log(`从文件中提取到 ${ids.length} 个ID`);
+
+                                // 调用后端检查已处理的数据
+                                const api = getPywebviewApi();
+                                if (api && typeof api.check_processed_data === 'function') {
+                                    const processedIds = await api.check_processed_data(ids);
+
+                                    if (processedIds && processedIds.length > 0) {
+                                        const duplicateCount = processedIds.length;
+                                        const newCount = ids.length - duplicateCount;
+
+                                        ElNotification({
+                                            title: '重复数据检测',
+                                            message: `文件中发现 ${duplicateCount} 条已处理的数据，${newCount} 条新数据。处理时将自动跳过已处理的数据。`,
+                                            type: 'info',
+                                            duration: 8000
+                                        });
+
+                                        console.log(`重复数据统计: 已处理 ${duplicateCount} 条，新数据 ${newCount} 条`);
+                                    } else {
+                                        console.log('未发现重复数据，所有数据都是新的');
+                                    }
+                                }
+
+                            } catch (error) {
+                                console.error('解析文件失败:', error);
+                            }
+                        };
+
+                        reader.onerror = () => {
+                            console.error('读取文件失败');
+                        };
+
+                        reader.readAsArrayBuffer(file.raw);
+
+                    } catch (error) {
+                        console.error('检查重复数据失败:', error);
+                    }
+                };
+
+                // 开始处理文件
+                const startProcessFile = () => {
+                    if (!window.selectedFileData) {
+                        ElMessage.error('文件数据丢失，请重新选择文件');
+                        resetFileSelection();
+                        return;
+                    }
+
+                    // 读取文件内容
+                    const reader = new FileReader();
+
+                    reader.onerror = (error) => {
+                        console.error('文件读取错误:', error);
+                        isProcessingFile.value = false;
+                    };
+
+                    reader.onload = async (e) => {
+                        try {
+                            isProcessingFile.value = true;
+                            console.log('=== 文件读取完成 ===');
+
+                            // 初始化进度跟踪
+                            initializeProgress();
+
+                            // 获取文件内容（ArrayBuffer格式）
+                            const fileContent = e.target.result;
+                            console.log('ArrayBuffer大小:', fileContent.byteLength);
+
+                            // 转换为Uint8Array
+                            const uint8Array = new Uint8Array(fileContent);
+                            console.log('Uint8Array长度:', uint8Array.length);
+
+                            // 转换为普通数组
+                            const contentArray = Array.from(uint8Array);
+                            console.log('内容数组长度:', contentArray.length);
+
+                            // 根据文件扩展名设置正确的MIME类型
+                            let fileType = window.selectedFileData.type;
+                            if (!fileType || fileType === 'undefined') {
+                                const fileName = window.selectedFileData.name.toLowerCase();
+                                if (fileName.endsWith('.xlsx')) {
+                                    fileType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+                                } else if (fileName.endsWith('.xls')) {
+                                    fileType = 'application/vnd.ms-excel';
+                                } else {
+                                    fileType = 'application/octet-stream'; // 默认二进制类型
+                                }
+                                console.log('自动设置文件类型:', fileType);
+                            }
+
+                            const fileData = {
+                                name: window.selectedFileData.name,
+                                size: window.selectedFileData.size,
+                                type: fileType,
+                                content: contentArray
+                            };
+
+                            console.log('=== 准备发送到Python ===');
+                            console.log('发送的数据:', {
+                                name: fileData.name,
+                                size: fileData.size,
+                                type: fileData.type,
+                                contentLength: fileData.content.length
+                            });
+
+                            // 检查pywebview API是否可用（iframe中需要通过parent访问）
+                            let pywebviewApi = null;
+
+                            if (window.pywebview && window.pywebview.api) {
+                                pywebviewApi = window.pywebview.api;
+                                console.log('使用当前窗口的pywebview API');
+                            } else if (window.parent && window.parent.pywebview && window.parent.pywebview.api) {
+                                pywebviewApi = window.parent.pywebview.api;
+                                console.log('使用父窗口的pywebview API');
+                            } else if (window.top && window.top.pywebview && window.top.pywebview.api) {
+                                pywebviewApi = window.top.pywebview.api;
+                                console.log('使用顶层窗口的pywebview API');
+                            } else {
+                                throw new Error('pywebview API不可用，请检查是否在pywebview环境中运行');
+                            }
+
+                            // 启动定时器获取处理进度
+                            console.log('🚀 启动进度监控定时器');
+                            const progressTimer = setInterval(() => {
+                                fetchConsoleOutput();
+                            }, 1000); // 每秒调用一次update_processing_progress
+
+                            // 调用Python处理，传递休眠时间配置
+                            const fileDataWithConfig = {
+                                ...fileData,
+                                crawlConfig: {
+                                    sleepInterval: crawlConfig.sleepInterval
+                                }
+                            };
+                            const result = await pywebviewApi.process_file(fileDataWithConfig);
+
+                            // 处理完成，停止定时器
+                            console.log('⏹️ 停止进度监控定时器');
+                            clearInterval(progressTimer);
+
+                            console.log('=== Python处理结果 ===');
+                            console.log('结果:', result);
+
+                            if (result && result.success) {
+                                console.log('✅ Excel文件读取成功');
+
+                                // 添加到工作日志
+                                if (result.data) {
+                                    const logEntry = {
+                                        id: Date.now(),
+                                        time: new Date().toLocaleString(),
+                                        filename: result.data.filename,
+                                        status: 'success',
+                                        details: {
+                                            sheets: result.data.sheet_names.length,
+                                            currentSheet: result.data.current_sheet,
+                                            rows: result.data.max_row,
+                                            columns: result.data.max_column,
+                                            headers: result.data.headers,
+                                            totalRows: result.data.total_rows,
+                                            hyperlinksCount: result.data.hyperlinks_count,
+                                            hyperlinks: result.data.hyperlinks,
+                                            extractedIds: result.data.extracted_ids || [],
+                                            sqliteReadyCount: result.data.sqlite_ready_count || 0,
+                                            dbInsertSuccess: result.data.db_insert_success || false,
+                                            dbInsertMessage: result.data.db_insert_message || '未执行插入'
+                                        }
+                                    };
+                                    workLogs.value.unshift(logEntry);
+
+                                    console.log('=== Excel文件信息 ===');
+                                    console.log('文件名:', result.data.filename);
+                                    console.log('工作表数量:', result.data.sheet_names.length);
+                                    console.log('工作表名称:', result.data.sheet_names);
+                                    console.log('当前工作表:', result.data.current_sheet);
+                                    console.log('最大行数:', result.data.max_row);
+                                    console.log('最大列数:', result.data.max_column);
+                                    console.log('实际数据行数:', result.data.total_rows);
+                                    console.log('表头:', result.data.headers);
+                                    console.log('示例数据:', result.data.sample_data);
+                                    console.log('超链接数量:', result.data.hyperlinks_count);
+                                    console.log('超链接详情:', result.data.hyperlinks);
+
+                                    // 特别打印超链接信息
+                                    if (result.data.hyperlinks && result.data.hyperlinks.length > 0) {
+                                        console.log('\n=== 发现的超链接 ===');
+                                        result.data.hyperlinks.forEach((link, index) => {
+                                            console.log(`${index + 1}. 行${link.row} ${link.column_name}: ${link.cell_value} -> ${link.hyperlink}`);
+                                        });
+                                    }
+
+                                    // 打印提取的ID和SQLite数据
+                                    if (result.data.extracted_ids) {
+                                        console.log('\n=== 提取的ID ===');
+                                        console.log('ID数量:', result.data.extracted_ids.length);
+                                        console.log('ID列表:', result.data.extracted_ids);
+                                        console.log('SQLite数据条数:', result.data.sqlite_ready_count);
+                                        console.log('SQLite数据:', result.data.sqlite_data);
+
+                                        // 打印数据库插入结果
+                                        console.log('\n=== 数据库插入结果 ===');
+                                        console.log('插入成功:', result.data.db_insert_success);
+                                        console.log('插入消息:', result.data.db_insert_message);
+
+                                        // 显示插入结果消息
+                                        if (result.data.db_insert_success) {
+                                            ElMessage.success(result.data.db_insert_message);
+                                            // 刷新表格数据
+                                            setTimeout(() => {
+                                                loadData();
+                                            }, 1000);
+                                        } else {
+                                            ElMessage.warning(result.data.db_insert_message);
+                                        }
+                                    }
+                                }
+
+                                selectedFileName.value = '';
+                            } else {
+                                const errorMsg = result ? result.message : '未知错误';
+                                console.error('处理失败:', errorMsg);
+                                console.log('🔍 处理失败结果详情:', result);
+
+                                // 检查是否是取消处理且有已处理数据
+                                console.log('🔍 检查取消处理条件:');
+                                console.log('   result.cancelled:', result?.cancelled);
+                                console.log('   result.ask_save:', result?.ask_save);
+                                console.log('   result.has_processed_data:', result?.has_processed_data);
+                                console.log('   result.processed_count:', result?.processed_count);
+
+                                if (result && result.cancelled && result.ask_save && result.has_processed_data) {
+                                    console.log(`📊 检测到取消处理，有 ${result.processed_count} 条已处理数据`);
+
+                                    try {
+                                        // 询问用户是否保存已处理的数据
+                                        await ElMessageBox.confirm(
+                                            `处理已取消，但已成功处理了 ${result.processed_count} 条数据。\n\n是否要保存这些已处理的数据？`,
+                                            '保存已处理数据',
+                                            {
+                                                confirmButtonText: '保存数据',
+                                                cancelButtonText: '不保存',
+                                                type: 'warning',
+                                                distinguishCancelAndClose: true
+                                            }
+                                        );
+
+                                        // 用户选择保存数据
+                                        console.log('用户选择保存已处理数据');
+
+                                        const api = getPywebviewApi();
+                                        if (api && typeof api.save_partial_processed_data === 'function') {
+                                            const saveResult = await api.save_partial_processed_data({
+                                                processed_data: result.processed_data,
+                                                processed_count: result.processed_count,
+                                                total_count: result.processed_count
+                                            });
+
+                                            if (saveResult && saveResult.success) {
+                                                ElMessage.success(`已保存 ${result.processed_count} 条已处理数据`);
+                                                console.log('✅ 已处理数据保存成功');
+
+                                                // 保存成功后更新控制台状态
+                                                await fetchConsoleOutput();
+
+                                                // 刷新数据显示
+                                                await loadData();
+                                            } else {
+                                                ElMessage.error('保存已处理数据失败');
+                                                console.error('保存已处理数据失败:', saveResult);
+                                            }
+                                        } else {
+                                            ElMessage.error('保存功能不可用');
+                                        }
+
+                                    } catch (action) {
+                                        if (action === 'cancel') {
+                                            console.log('用户选择不保存数据');
+                                            ElMessage.info('已处理的数据未保存');
+                                        } else {
+                                            console.log('用户关闭对话框');
+                                        }
+                                    }
+                                }
+                                // 检查是否是风控错误
+                                else if (result && result.risk_control) {
+                                    // 风控处理 - 询问是否保存已处理数据
+                                    await handleRiskControlSave(result);
+
+                                } else {
+                                    // 普通错误处理，不是风控也不是取消
+                                    ElMessage.error(errorMsg);
+                                }
+
+                                // 添加错误日志
+                                const logEntry = {
+                                    id: Date.now(),
+                                    time: new Date().toLocaleString(),
+                                    filename: window.selectedFileData ? window.selectedFileData.name : '未知文件',
+                                    status: 'error',
+                                    error: errorMsg
+                                };
+                                workLogs.value.unshift(logEntry);
+                            }
+
+                        } catch (error) {
+                            console.error('=== 文件处理异常 ===');
+                            console.error('错误对象:', error);
+                            console.error('错误消息:', error.message);
+                            console.error('错误堆栈:', error.stack);
+                            ElMessage.error(`文件处理失败: ${error.message}`);
+                        } finally {
+                            // 停止进度监控定时器
+                            if (progressTimer) {
+                                console.log('⏹️ 停止进度监控定时器 (finally)');
+                                clearInterval(progressTimer);
+                                progressTimer = null;
+                            }
+
+                            // Python的process_excel_file函数会在直连请求完成后才return
+                            // 所以到这里时，Python已经完成了所有任务
+                            console.log('✅ Python已完成所有任务（包括直连请求）');
+
+                            // 完成进度
+                            completeProgress();
+                            isProcessingFile.value = false;
+                            // Python处理完毕后立即清理文件选择，允许重新选择文件
+                            selectedFileName.value = '';
+                            if (uploadRef.value) {
+                                uploadRef.value.clearFiles();
+                            }
+                        }
+                    };
+
+                    console.log('开始读取文件...');
+                    reader.readAsArrayBuffer(window.selectedFileData.raw); // 读取为二进制数据
+                };
+
+                // 重新选择文件
+                const resetFileSelection = () => {
+                    selectedFileName.value = '';
+                    window.selectedFileData = null;
+                    if (uploadRef.value) {
+                        uploadRef.value.clearFiles();
+                    }
+                    console.log('✅ 已重置文件选择');
+                };
+
+                // 工作日志相关
+                const clearLogs = () => {
+                    ElMessageBox.confirm('确定要清空所有工作日志吗？', '确认清空', {
+                        confirmButtonText: '确定',
+                        cancelButtonText: '取消',
+                        type: 'warning'
+                    }).then(() => {
+                        workLogs.value = [];
+                        console.log('✅ 工作日志已清空');
+                    }).catch(() => {
+                        // 用户取消
+                    });
+                };
+
+                const viewLogDetails = (log) => {
+                    if (log.details) {
+                        let details = [
+                            `文件名: ${log.filename}`,
+                            `处理时间: ${log.time}`,
+                            `工作表: ${log.details.currentSheet}`,
+                            `数据规模: ${log.details.totalRows}行 × ${log.details.columns}列`,
+                            `工作表数量: ${log.details.sheets}个`,
+                            `超链接数量: ${log.details.hyperlinksCount}个`,
+                            `提取ID数量: ${log.details.sqliteReadyCount}个`,
+                            `数据库插入: ${log.details.dbInsertSuccess ? '成功' : '失败'} - ${log.details.dbInsertMessage}`,
+                            `表头字段: ${log.details.headers.join(', ')}`
+                        ];
+
+                        // 添加超链接详情
+                        if (log.details.hyperlinks && log.details.hyperlinks.length > 0) {
+                            details.push('\n=== 超链接详情 ===');
+                            log.details.hyperlinks.forEach((link, index) => {
+                                details.push(`${index + 1}. 行${link.row} ${link.column_name}: ${link.cell_value} -> ${link.hyperlink}`);
+                            });
+                        }
+
+                        ElMessageBox.alert(details.join('\n'), '处理详情', {
+                            confirmButtonText: '确定'
+                        });
+                    }
+                };
+
+                // 导出数据功能 - 使用FileSaver.js
+                const exportData = async () => {
+                    console.log('🚀 导出按钮被点击');
+                    console.log('当前数据总数:', total.value);
+                    console.log('FileSaver可用:', typeof saveAs !== 'undefined');
+                    console.log('XLSX可用:', typeof XLSX !== 'undefined');
+
+                    if (total.value === 0) {
+                        console.log('❌ 暂无数据可导出');
+                        ElMessage.warning('暂无数据可导出');
+                        return;
+                    }
+
+                    // 检查必要的库是否加载
+                    if (typeof saveAs === 'undefined') {
+                        ElMessage.error('FileSaver库未加载，无法导出文件');
+                        console.error('❌ FileSaver库未加载');
+                        return;
+                    }
+
+                    // 添加用户确认
+                    try {
+                        await ElMessageBox.confirm(
+                            `确定要导出 ${total.value} 条数据吗？`,
+                            '确认导出',
+                            {
+                                confirmButtonText: '确定导出',
+                                cancelButtonText: '取消',
+                                type: 'info',
+                            }
+                        );
+                    } catch {
+                        console.log('用户取消导出');
+                        return;
+                    }
+
+                    try {
+                        console.log('=== 开始导出数据 ===');
+
+                        const pywebviewApi = getPywebviewApi();
+                        if (!pywebviewApi) {
+                            ElMessage.error('系统API不可用');
+                            return;
+                        }
+
+                        // 准备搜索参数（与当前搜索条件一致）
+                        const searchParams = {};
+                        if (searchForm.fileName && searchForm.fileName.trim()) {
+                            searchParams.fileName = searchForm.fileName.trim();
+                        }
+                        if (searchForm.description && searchForm.description.trim()) {
+                            searchParams.description = searchForm.description.trim();
+                        }
+                        if (searchForm.phone && searchForm.phone.trim()) {
+                            searchParams.phone = searchForm.phone.trim();
+                        }
+                        if (searchForm.wechat && searchForm.wechat.trim()) {
+                            searchParams.wechat = searchForm.wechat.trim();
+                        }
+
+                        console.log('导出搜索条件:', searchParams);
+                        console.log('导出总记录数:', total.value);
+
+                        // 获取所有符合条件的数据（使用大分页）
+                        const result = await pywebviewApi.get_users_data(
+                            1,
+                            Math.min(total.value, 10000), // 最多1万条，避免请求过大
+                            Object.keys(searchParams).length > 0 ? searchParams : null
+                        );
+
+                        console.log('导出数据结果:', result);
+
+                        if (!result.success || !result.data) {
+                            ElMessage.error('获取导出数据失败');
+                            return;
+                        }
+
+                        // 准备导出数据（与表格列顺序保持一致）
+                        const exportHeaders = ['ID', '用户昵称', '抖音ID', '蝉妈妈ID', '简介', '联系方式', '来源文件', '创建时间'];
+                        const exportRows = result.data.map(row => [
+                            row.id || '',
+                            row.username || '',
+                            row.unique_id || '',
+                            row.cmm_id || '',
+                            row.intro || '',
+                            row.code || '',
+                            row.file_name || '',
+                            row.create_time || ''
+                        ]);
+
+                        console.log('准备导出行数:', exportRows.length);
+
+                        // 创建CSV内容
+                        let csvContent = exportHeaders.join(',') + '\n';
+                        exportRows.forEach(row => {
+                            // 处理包含逗号的字段，用双引号包围
+                            const processedRow = row.map(field => {
+                                const str = String(field || '');
+                                if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                                    return '"' + str.replace(/"/g, '""') + '"';
+                                }
+                                return str;
+                            });
+                            csvContent += processedRow.join(',') + '\n';
+                        });
+
+                        console.log('CSV内容长度:', csvContent.length);
+
+                        // 添加BOM以支持中文
+                        const BOM = '\uFEFF';
+                        csvContent = BOM + csvContent;
+
+                        // 使用Python后端保存文件（pywebview环境优化）
+                        console.log('💾 使用Python后端保存文件...');
+
+                        // 生成文件名
+                        const now = new Date();
+                        const timestamp = now.getFullYear() +
+                            String(now.getMonth() + 1).padStart(2, '0') +
+                            String(now.getDate()).padStart(2, '0') + '_' +
+                            String(now.getHours()).padStart(2, '0') +
+                            String(now.getMinutes()).padStart(2, '0');
+
+                        const fileName = `用户数据_${timestamp}.csv`;
+                        console.log('📁 文件名:', fileName);
+                        console.log('📊 CSV内容长度:', csvContent.length);
+
+                        try {
+                            // 调用Python后端保存文件
+                            console.log('🐍 调用Python后端保存文件...');
+                            const saveResult = await pywebviewApi.save_export_file(csvContent, fileName, 'csv');
+
+                            console.log('💾 Python保存结果:', saveResult);
+
+                            if (saveResult.success) {
+                                console.log('✅ 文件保存成功');
+                                ElMessage.success(`文件已保存: ${saveResult.file_path}`);
+                            } else {
+                                console.error('❌ Python保存失败:', saveResult.message);
+
+                                // 备用方案：尝试浏览器下载
+                                console.log('🔄 尝试浏览器下载备用方案...');
+                                if (typeof saveAs !== 'undefined') {
+                                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                                    saveAs(blob, fileName);
+                                    console.log('✅ 浏览器下载备用方案执行');
+                                    ElMessage.warning('使用浏览器下载，请检查下载文件夹');
+                                } else {
+                                    throw new Error(saveResult.message);
+                                }
+                            }
+
+                        } catch (saveError) {
+                            console.error('❌ 文件保存失败:', saveError);
+                            ElMessage.error('文件保存失败: ' + saveError.message);
+                        }
+
+                        console.log('=== 导出完成 ===');
+                        ElMessage.success(`成功导出 ${result.data.length} 条数据到文件: ${fileName}`);
+
+                    } catch (error) {
+                        console.error('导出失败:', error);
+                        ElMessage.error('导出失败: ' + error.message);
+                    }
+                };
+
+                const viewDetail = (row) => {
+                    console.log(`查看详情: ${row.originalFileName}`);
+                };
+
+                // 处理导出命令
+                const handleExportCommand = (command) => {
+                    console.log('导出命令:', command);
+                    if (command === 'csv') {
+                        exportData();
+                    } else if (command === 'xlsx') {
+                        exportExcelData();
+                    } else if (command === 'csv_simple') {
+                        exportDataSimple('csv');
+                    } else if (command === 'xlsx_simple') {
+                        exportDataSimple('xlsx');
+                    }
+                };
+
+                // 导出Excel文件
+                const exportExcelData = async () => {
+                    console.log('🚀 开始导出Excel文件...');
+                    console.log('当前数据总数:', total.value);
+
+                    if (total.value === 0) {
+                        ElMessage.warning('暂无数据可导出');
+                        return;
+                    }
+
+                    // 检查XLSX库是否加载
+                    if (typeof XLSX === 'undefined') {
+                        ElMessage.error('XLSX库未加载，无法导出Excel文件');
+                        console.error('❌ XLSX库未加载');
+                        return;
+                    }
+
+                    try {
+                        await ElMessageBox.confirm(
+                            `确定要导出 ${total.value} 条数据到Excel文件吗？`,
+                            '确认导出Excel',
+                            {
+                                confirmButtonText: '确定导出',
+                                cancelButtonText: '取消',
+                                type: 'info',
+                            }
+                        );
+                    } catch {
+                        console.log('用户取消导出Excel');
+                        return;
+                    }
+
+                    try {
+                        console.log('=== 开始导出Excel数据 ===');
+
+                        const pywebviewApi = getPywebviewApi();
+                        if (!pywebviewApi) {
+                            ElMessage.error('系统API不可用');
+                            return;
+                        }
+
+                        // 获取数据（与CSV导出相同的逻辑）
+                        const searchParams = {};
+                        if (searchForm.fileName && searchForm.fileName.trim()) {
+                            searchParams.fileName = searchForm.fileName.trim();
+                        }
+                        if (searchForm.description && searchForm.description.trim()) {
+                            searchParams.description = searchForm.description.trim();
+                        }
+                        if (searchForm.phone && searchForm.phone.trim()) {
+                            searchParams.phone = searchForm.phone.trim();
+                        }
+                        if (searchForm.wechat && searchForm.wechat.trim()) {
+                            searchParams.wechat = searchForm.wechat.trim();
+                        }
+
+                        const result = await pywebviewApi.get_users_data(
+                            1,
+                            Math.min(total.value, 10000),
+                            Object.keys(searchParams).length > 0 ? searchParams : null
+                        );
+
+                        if (!result.success || !result.data) {
+                            ElMessage.error('获取导出数据失败');
+                            return;
+                        }
+
+                        // 准备Excel数据（与表格列顺序保持一致）
+                        const excelData = result.data.map(row => ({
+                            'ID': row.id || '',
+                            '用户昵称': row.username || '',
+                            '抖音ID': row.unique_id || '',
+                            '蝉妈妈ID': row.cmm_id || '',
+                            '简介': row.intro || '',
+                            '联系方式': row.code || '',
+                            '来源文件': row.file_name || '',
+                            '创建时间': row.create_time || ''
+                        }));
+
+                        console.log('准备导出Excel行数:', excelData.length);
+
+                        // 创建工作簿
+                        const wb = XLSX.utils.book_new();
+                        const ws = XLSX.utils.json_to_sheet(excelData);
+
+                        // 设置列宽
+                        const colWidths = [
+                            { wch: 8 },   // ID
+                            { wch: 20 },  // 用户昵称
+                            { wch: 20 },  // 抖音ID
+                            { wch: 30 },  // 蝉妈妈ID
+                            { wch: 50 },  // 简介
+                            { wch: 20 },  // 联系方式
+                            { wch: 15 },  // 来源文件
+                            { wch: 20 }   // 创建时间
+                        ];
+                        ws['!cols'] = colWidths;
+
+                        XLSX.utils.book_append_sheet(wb, ws, '用户数据');
+
+                        // 生成文件名
+                        const now = new Date();
+                        const timestamp = now.getFullYear() +
+                            String(now.getMonth() + 1).padStart(2, '0') +
+                            String(now.getDate()).padStart(2, '0') + '_' +
+                            String(now.getHours()).padStart(2, '0') +
+                            String(now.getMinutes()).padStart(2, '0');
+
+                        const fileName = `用户数据_${timestamp}.xlsx`;
+
+                        // 在pywebview环境中，使用Python后端保存Excel文件
+                        try {
+                            // 生成Excel文件的二进制数据
+                            const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+
+                            // 转换为Base64字符串传递给Python
+                            const uint8Array = new Uint8Array(excelBuffer);
+                            const binaryString = Array.from(uint8Array, byte => String.fromCharCode(byte)).join('');
+                            const base64String = btoa(binaryString);
+
+                            console.log('📦 Excel文件生成完成，大小:', excelBuffer.byteLength, '字节');
+
+                            // 调用Python后端保存Excel文件
+                            const saveResult = await pywebviewApi.save_excel_file(base64String, fileName);
+
+                            if (saveResult.success) {
+                                console.log('=== Excel导出完成 ===');
+                                ElMessage.success(`成功导出 ${result.data.length} 条数据到Excel文件: ${saveResult.file_path}`);
+                            } else {
+                                throw new Error(saveResult.message);
+                            }
+
+                        } catch (excelSaveError) {
+                            console.error('❌ Excel保存失败:', excelSaveError);
+
+                            // 备用方案：尝试直接写入文件
+                            try {
+                                XLSX.writeFile(wb, fileName);
+                                console.log('✅ 使用备用Excel保存方案');
+                                ElMessage.success(`成功导出 ${result.data.length} 条数据到Excel文件: ${fileName}`);
+                            } catch (fallbackError) {
+                                console.error('❌ Excel备用方案也失败:', fallbackError);
+                                ElMessage.error('Excel导出失败: ' + fallbackError.message);
+                            }
+                        }
+
+                    } catch (error) {
+                        console.error('Excel导出失败:', error);
+                        ElMessage.error('Excel导出失败: ' + error.message);
+                    }
+                };
+
+                // 简单导出功能（直接保存到Downloads文件夹）
+                const exportDataSimple = async (format) => {
+                    console.log('🚀 开始简单导出:', format);
+                    console.log('当前数据总数:', total.value);
+
+                    if (total.value === 0) {
+                        ElMessage.warning('暂无数据可导出');
+                        return;
+                    }
+
+                    try {
+                        console.log('=== 开始简单导出数据 ===');
+
+                        const pywebviewApi = getPywebviewApi();
+                        if (!pywebviewApi) {
+                            ElMessage.error('系统API不可用');
+                            return;
+                        }
+
+                        // 获取数据（与普通导出相同的逻辑）
+                        const searchParams = {};
+                        if (searchForm.fileName && searchForm.fileName.trim()) {
+                            searchParams.fileName = searchForm.fileName.trim();
+                        }
+                        if (searchForm.description && searchForm.description.trim()) {
+                            searchParams.description = searchForm.description.trim();
+                        }
+                        if (searchForm.phone && searchForm.phone.trim()) {
+                            searchParams.phone = searchForm.phone.trim();
+                        }
+                        if (searchForm.wechat && searchForm.wechat.trim()) {
+                            searchParams.wechat = searchForm.wechat.trim();
+                        }
+
+                        const result = await pywebviewApi.get_users_data(
+                            1,
+                            Math.min(total.value, 10000),
+                            Object.keys(searchParams).length > 0 ? searchParams : null
+                        );
+
+                        if (!result.success || !result.data) {
+                            ElMessage.error('获取导出数据失败');
+                            return;
+                        }
+
+                        // 生成文件名
+                        const now = new Date();
+                        const timestamp = now.getFullYear() +
+                            String(now.getMonth() + 1).padStart(2, '0') +
+                            String(now.getDate()).padStart(2, '0') + '_' +
+                            String(now.getHours()).padStart(2, '0') +
+                            String(now.getMinutes()).padStart(2, '0');
+
+                        if (format === 'csv') {
+                            // CSV导出（与表格列顺序保持一致）
+                            const exportHeaders = ['ID', '用户昵称', '抖音ID', '蝉妈妈ID', '简介', '联系方式', '来源文件', '创建时间'];
+                            const exportRows = result.data.map(row => [
+                                row.id || '',
+                                row.username || '',
+                                row.unique_id || '',
+                                row.cmm_id || '',
+                                row.intro || '',
+                                row.code || '',
+                                row.file_name || '',
+                                row.create_time || ''
+                            ]);
+
+                            let csvContent = exportHeaders.join(',') + '\\n';
+                            exportRows.forEach(row => {
+                                const processedRow = row.map(field => {
+                                    const str = String(field || '');
+                                    if (str.includes(',') || str.includes('"') || str.includes('\\n')) {
+                                        return '"' + str.replace(/"/g, '""') + '"';
+                                    }
+                                    return str;
+                                });
+                                csvContent += processedRow.join(',') + '\\n';
+                            });
+
+                            const BOM = '\\uFEFF';
+                            csvContent = BOM + csvContent;
+
+                            const fileName = `用户数据_${timestamp}.csv`;
+
+                            // 调用简单保存API
+                            const saveResult = await pywebviewApi.save_to_downloads(csvContent, fileName, 'csv');
+
+                            if (saveResult.success) {
+                                ElMessage.success(`CSV文件已保存: ${saveResult.message}`);
+                            } else {
+                                throw new Error(saveResult.message);
+                            }
+
+                        } else if (format === 'xlsx') {
+                            // Excel导出（简化版本，直接保存到Downloads）
+                            if (typeof XLSX === 'undefined') {
+                                ElMessage.error('XLSX库未加载，无法导出Excel文件');
+                                return;
+                            }
+
+                            // 准备Excel数据（与表格列顺序保持一致）
+                            const excelData = result.data.map(row => ({
+                                'ID': row.id || '',
+                                '用户昵称': row.username || '',
+                                '抖音ID': row.unique_id || '',
+                                '蝉妈妈ID': row.cmm_id || '',
+                                '简介': row.intro || '',
+                                '联系方式': row.code || '',
+                                '来源文件': row.file_name || '',
+                                '创建时间': row.create_time || ''
+                            }));
+
+                            console.log('准备导出Excel行数:', excelData.length);
+
+                            // 创建工作簿
+                            const wb = XLSX.utils.book_new();
+                            const ws = XLSX.utils.json_to_sheet(excelData);
+
+                            // 设置列宽（与表格列顺序保持一致）
+                            const colWidths = [
+                                { wch: 8 },   // ID
+                                { wch: 20 },  // 用户昵称
+                                { wch: 20 },  // 抖音ID
+                                { wch: 30 },  // 蝉妈妈ID
+                                { wch: 50 },  // 简介
+                                { wch: 20 },  // 联系方式
+                                { wch: 15 },  // 来源文件
+                                { wch: 20 }   // 创建时间
+                            ];
+                            ws['!cols'] = colWidths;
+
+                            XLSX.utils.book_append_sheet(wb, ws, '用户数据');
+
+                            const fileName = `用户数据_${timestamp}.xlsx`;
+
+                            // 生成Excel文件的二进制数据
+                            const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+
+                            // 转换为Base64字符串传递给Python
+                            const uint8Array = new Uint8Array(excelBuffer);
+                            const binaryString = Array.from(uint8Array, byte => String.fromCharCode(byte)).join('');
+                            const base64String = btoa(binaryString);
+
+                            console.log('📦 Excel文件生成完成，大小:', excelBuffer.byteLength, '字节');
+
+                            // 调用简单保存API（保存Excel到Downloads）
+                            const saveResult = await pywebviewApi.save_excel_to_downloads(base64String, fileName);
+
+                            if (saveResult.success) {
+                                ElMessage.success(`Excel文件已保存: ${saveResult.message}`);
+                            } else {
+                                throw new Error(saveResult.message);
+                            }
+                        }
+
+                    } catch (error) {
+                        console.error('简单导出失败:', error);
+                        ElMessage.error('导出失败: ' + error.message);
+                    }
+                };
+
+                // 进度跟踪相关方法
+                const initializeProgress = () => {
+                    processingProgress.value = {
+                        current: 0,
+                        total: 0,
+                        percentage: 0,
+                        estimatedTime: '计算中...',
+                        startTime: Date.now()
+                    };
+
+                    // 开始进度模拟
+                    startProgressSimulation();
+                };
+
+                const startProgressSimulation = () => {
+                    // 模拟进度更新
+                    const updateInterval = setInterval(() => {
+                        if (!isProcessingFile.value) {
+                            clearInterval(updateInterval);
+                            return;
+                        }
+
+                        // 根据时间估算进度
+                        const elapsed = Date.now() - processingProgress.value.startTime;
+                        const estimatedTotal = crawlConfig.sleepInterval * 1000 * 10; // 假设10个项目
+
+                        let percentage = Math.min((elapsed / estimatedTotal) * 100, 95); // 最多到95%
+
+                        processingProgress.value.percentage = Math.round(percentage);
+                        processingProgress.value.current = Math.round(percentage / 10);
+                        processingProgress.value.total = 10;
+
+                        // 计算剩余时间
+                        if (percentage > 0) {
+                            const remainingTime = (estimatedTotal - elapsed) / 1000;
+                            if (remainingTime > 60) {
+                                processingProgress.value.estimatedTime = `${Math.round(remainingTime / 60)}分钟`;
+                            } else if (remainingTime > 0) {
+                                processingProgress.value.estimatedTime = `${Math.round(remainingTime)}秒`;
+                            } else {
+                                processingProgress.value.estimatedTime = '即将完成';
+                            }
+                        }
+                    }, 1000); // 每秒更新一次
+                };
+
+                const completeProgress = () => {
+                    processingProgress.value = {
+                        current: processingProgress.value.total || 10,
+                        total: processingProgress.value.total || 10,
+                        percentage: 100,
+                        estimatedTime: '已完成',
+                        startTime: processingProgress.value.startTime
+                    };
+                };
+
+                // 检查token状态
+                const checkTokenStatus = async () => {
+                    try {
+                        const api = getPywebviewApi();
+                        if (api && typeof api.check_token_status === 'function') {
+                            const result = await api.check_token_status();
+
+                            if (result.success && result.has_token) {
+                                cmmLoginStatus.value = 'logged_in';
+                                cmmLoginMessage.value = 'Token可用';
+                                console.log('✅ Token状态检查: Token可用');
+                            } else {
+                                cmmLoginStatus.value = 'not_logged_in';
+                                cmmLoginMessage.value = '未登录';
+                                console.log('⚠️ Token状态检查: 未找到Token');
+                            }
+                        }
+                    } catch (error) {
+                        console.error('检查Token状态失败:', error);
+                        cmmLoginStatus.value = 'not_logged_in';
+                        cmmLoginMessage.value = '检查失败';
+                    }
+                };
+
+                // 保存登录凭据到localStorage
+                const saveCmmCredentials = (username, password) => {
+                    try {
+                        const credentials = {
+                            username: username,
+                            password: password,
+                            savedTime: Date.now()
+                        };
+                        localStorage.setItem('cmm_credentials', JSON.stringify(credentials));
+                        console.log('✅ 登录凭据已保存到localStorage');
+                    } catch (error) {
+                        console.error('保存登录凭据失败:', error);
+                    }
+                };
+
+                // ==================== 代理管理方法 ====================
+
+                // 保存爬取配置
+                const saveCrawlConfig = async () => {
+                    try {
+                        const api = getPywebviewApi();
+                        if (api && typeof api.update_crawl_config === 'function') {
+                            const result = await api.update_crawl_config({
+                                proxy_enabled: crawlConfig.proxyEnabled ? 1 : 0,
+                                wait_time: crawlConfig.waitTime,
+                                count_wait: crawlConfig.countWait,
+                                count_wait_time: crawlConfig.countWaitTime
+                            });
+
+                            if (result.success) {
+                                ElMessage.success('爬取配置已保存');
+                            } else {
+                                ElMessage.error(result.message || '保存配置失败');
+                            }
+                        }
+                    } catch (error) {
+                        console.error('保存爬取配置失败:', error);
+                        ElMessage.error('保存配置失败: ' + error.message);
+                    }
+                };
+
+                // 加载爬取配置
+                const loadCrawlConfig = async () => {
+                    try {
+                        const api = getPywebviewApi();
+                        if (api && typeof api.get_crawl_config === 'function') {
+                            const result = await api.get_crawl_config();
+                            if (result.success && result.data) {
+                                crawlConfig.proxyEnabled = result.data.proxy_enabled;
+                                crawlConfig.waitTime = result.data.wait_time;
+                                crawlConfig.countWait = result.data.count_wait;
+                                crawlConfig.countWaitTime = result.data.count_wait_time;
+                            }
+                        }
+                    } catch (error) {
+                        console.error('加载爬取配置失败:', error);
+                    }
+                };
+
+                // 刷新爬取配置
+                const refreshCrawlConfig = async () => {
+                    try {
+                        const loadingInstance = ElLoading.service({
+                            target: '.el-card',
+                            text: '刷新配置中...',
+                            background: 'rgba(0, 0, 0, 0.7)'
+                        });
+
+                        await loadCrawlConfig();
+                        await updateProxyStatus(); // 同时刷新代理状态
+
+                        loadingInstance.close();
+                        ElMessage.success('配置已刷新');
+
+                    } catch (error) {
+                        console.error('刷新爬取配置失败:', error);
+                        ElMessage.error('刷新配置失败: ' + error.message);
+                    }
+                };
+
+                // 代理开关切换
+                const handleProxyToggle = async (enabled) => {
+                    console.log('🔄 代理模式切换:', enabled);
+
+                    try {
+                        // 直接保存配置
+                        await saveCrawlConfig();
+
+                        ElMessage.success(enabled ? '代理模式已启用' : '代理模式已禁用');
+
+                        // 更新代理状态
+                        await updateProxyStatus();
+
+                    } catch (error) {
+                        console.error('代理模式切换失败:', error);
+                        ElMessage.error('代理模式切换失败: ' + error.message);
+                        // 回滚开关状态
+                        crawlConfig.proxyEnabled = !enabled;
+                    }
+                };
+
+                // 更新代理状态
+                const updateProxyStatus = async () => {
+                    try {
+                        const api = getPywebviewApi();
+                        if (api && typeof api.get_proxy_status === 'function') {
+                            const status = await api.get_proxy_status();
+                            if (status) {
+                                proxyStatus.value = {
+                                    current_proxy: status.current_proxy || '未设置',
+                                    request_count: status.request_count || 0,
+                                    rotation_interval: status.rotation_interval || 10,
+                                    proxy_enabled: status.proxy_enabled || false,
+                                    last_request_ip: status.last_request_ip || '未设置'
+                                };
+
+                                // 同步开关状态
+                                crawlConfig.proxyEnabled = status.proxy_enabled || false;
+                            }
+                        }
+                    } catch (error) {
+                        console.error('获取代理状态失败:', error);
+                        // 设置默认值
+                        proxyStatus.value = {
+                            current_proxy: '未设置',
+                            request_count: 0,
+                            rotation_interval: 10,
+                            proxy_enabled: false,
+                            last_request_ip: '未设置'
+                        };
+                    }
+                };
+
+                // 重置代理轮换
+                const resetProxyRotation = async () => {
+                    try {
+                        const api = getPywebviewApi();
+                        if (api && typeof api.reset_proxy_rotation === 'function') {
+                            await api.reset_proxy_rotation();
+                            await updateProxyStatus();
+                            ElMessage.success('代理轮换已重置');
+                        }
+                    } catch (error) {
+                        console.error('重置代理轮换失败:', error);
+                        ElMessage.error('重置代理轮换失败');
+                    }
+                };
+
+                // 清除代理配置
+                const clearProxyConfig = async () => {
+                    try {
+                        await ElMessageBox.confirm(
+                            '确定要清除所有代理配置信息吗？这将清除：\n• 当前代理IP\n• 最后请求IP\n• 风控状态\n• 已处理数据记录',
+                            '清除代理配置',
+                            {
+                                confirmButtonText: '确定清除',
+                                cancelButtonText: '取消',
+                                type: 'warning',
+                            }
+                        );
+
+                        const api = getPywebviewApi();
+                        if (api && typeof api.clear_proxy_config === 'function') {
+                            const result = await api.clear_proxy_config();
+                            if (result.success) {
+                                await updateProxyStatus();
+                                ElMessage.success('代理配置已清除');
+                            } else {
+                                ElMessage.error(result.message || '清除代理配置失败');
+                            }
+                        }
+                    } catch (error) {
+                        if (error !== 'cancel') {
+                            console.error('清除代理配置失败:', error);
+                            ElMessage.error('清除代理配置失败');
+                        }
+                    }
+                };
+
+                // 重置代理系统
+                const resetProxySystem = async () => {
+                    try {
+                        await ElMessageBox.confirm(
+                            '确定要重置整个代理系统吗？这将：\n• 清除所有配置信息\n• 重置代理池状态\n• 禁用代理模式\n• 清除所有计数',
+                            '重置代理系统',
+                            {
+                                confirmButtonText: '确定重置',
+                                cancelButtonText: '取消',
+                                type: 'error',
+                            }
+                        );
+
+                        const api = getPywebviewApi();
+                        if (api && typeof api.reset_proxy_system === 'function') {
+                            const result = await api.reset_proxy_system();
+                            if (result.success) {
+                                await updateProxyStatus();
+                                ElMessage.success('代理系统已重置');
+                            } else {
+                                ElMessage.error(result.message || '重置代理系统失败');
+                            }
+                        }
+                    } catch (error) {
+                        if (error !== 'cancel') {
+                            console.error('重置代理系统失败:', error);
+                            ElMessage.error('重置代理系统失败');
+                        }
+                    }
+                };
+
+                // 从localStorage加载保存的登录凭据
+                const loadSavedCredentials = () => {
+                    try {
+                        const saved = localStorage.getItem('cmm_credentials');
+                        if (saved) {
+                            const credentials = JSON.parse(saved);
+                            cmmLoginForm.username = credentials.username || '';
+                            cmmLoginForm.password = credentials.password || '';
+                            console.log('✅ 已从localStorage加载保存的登录凭据');
+                        } else {
+                            console.log('ℹ️ 未找到保存的登录凭据');
+                        }
+                    } catch (error) {
+                        console.error('加载登录凭据失败:', error);
+                    }
+                };
+
+                // 页面加载时初始化数据
+                onMounted(() => {
+                    loadData();
+                    checkTokenStatus(); // 检查token状态
+                    loadSavedCredentials(); // 加载保存的登录凭据
+                    loadCrawlConfig(); // 加载爬取配置
+                    updateProxyStatus(); // 加载代理状态
+                });
+
+                return {
+                    searchForm,
+                    tableData,
+                    currentPage,
+                    pageSize,
+                    total,
+                    tableLoading,
+                    isProcessingFile,
+                    selectedFileName,
+                    workLogs,
+                    uploadRef,
+                    // 进度跟踪
+                    processingProgress,
+                    // 控制台输出
+                    consoleOutput,
+                    consoleLogContainer,
+                    fetchConsoleOutput,
+                    getLogColor,
+                    cancelProcessing,
+                    processingCancelled,
+                    checkTokenStatus,
+                    loadSavedCredentials,
+                    saveCmmCredentials,
+                    // 蝉妈妈登录相关
+                    cmmLoginLoading,
+                    cmmLoginMessage,
+                    cmmLoginForm,
+                    cmmLoginStatus,
+                    handleCmmLogin,
+                    handleCmmLogout,
+                    // 爬取配置
+                    crawlConfig,
+                    saveCrawlConfig,
+                    loadCrawlConfig,
+                    refreshCrawlConfig,
+                    // 代理相关
+                    proxyStatus,
+                    handleProxyToggle,
+                    updateProxyStatus,
+                    resetProxyRotation,
+                    clearProxyConfig,
+                    resetProxySystem,
+                    // 方法
+                    loadData,
+                    refreshData,
+                    handleSearch,
+                    resetSearch,
+                    handleSizeChange,
+                    handleCurrentChange,
+                    handleFileChange,
+                    startProcessFile,
+                    resetFileSelection,
+                    clearLogs,
+                    viewLogDetails,
+                    exportData,
+                    exportExcelData,
+                    exportDataSimple,
+                    handleExportCommand,
+                    viewDetail
+                };
+            }
+        });
+
+        // 注册所有图标
+        Object.keys(ElementPlusIconsVue).forEach(key => {
+            app.component(key, ElementPlusIconsVue[key]);
+        });
+
+        app.use(ElementPlus).mount('#app');
+    </script>
+</body>
+
+</html>

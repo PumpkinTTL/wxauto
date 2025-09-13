@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>快手跟播</title>
+    <!-- Element Plus CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <!-- Animate.css -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background: #f8fafc;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+
+        .container {
+            padding: 16px;
+            height: calc(100vh - 32px);
+            overflow-y: auto;
+        }
+
+        .page-header {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 20px rgba(59, 130, 246, 0.3);
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .content-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 24px;
+            border-bottom: 1px solid #e5e7eb;
+            background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+        }
+
+        .card-body {
+            padding: 24px;
+        }
+
+        /* 直播间容器 */
+        .rooms-container {
+            max-height: 350px;
+            overflow-y: auto;
+            padding: 2px;
+        }
+
+        .rooms-container::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .rooms-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .rooms-container::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 2px;
+        }
+
+        .rooms-container::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
+
+        /* 直播间卡片 */
+        .room-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            margin-bottom: 6px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .room-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: #eab308;
+            transition: all 0.15s ease;
+        }
+
+        .room-item:hover {
+            background: #ffffff;
+            border-color: #eab308;
+            box-shadow: 0 2px 12px rgba(234, 179, 8, 0.08);
+            transform: translateY(-1px);
+        }
+
+        .room-item:hover::before {
+            background: #eab308;
+        }
+
+        .room-item.active {
+            background: #ffffff;
+            border-color: #eab308;
+            box-shadow: 0 4px 16px rgba(234, 179, 8, 0.12);
+        }
+
+        .room-item.active::before {
+            background: #eab308;
+            width: 4px;
+        }
+
+        .room-item:hover {
+            border-color: #3b82f6;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+        }
+
+        .room-item.active {
+            border-color: #3b82f6;
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+        }
+
+        .speech-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            background: #f9fafb;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-running { background: #3b82f6; }
+        .status-stopped { background: #ef4444; }
+        .status-paused { background: #6b7280; }
+
+        .animate-slide-in {
+            animation: slideInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideInUp {
+            0% {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            100% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .control-panel {
+            background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .log-container {
+            background: #1f2937;
+            color: #f3f4f6;
+            border-radius: 8px;
+            padding: 16px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .log-entry {
+            margin-bottom: 4px;
+        }
+
+        .log-info { color: #60a5fa; }
+        .log-success { color: #34d399; }
+        .log-warning { color: #fbbf24; }
+        .log-error { color: #f87171; }
+
+        .kuaishou-feature {
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            border: 1px solid #3b82f6;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .feature-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .feature-icon {
+            width: 20px;
+            height: 20px;
+            background: #3b82f6;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="container animate-slide-in">
+            <!-- 页面头部 -->
+            <div class="page-header">
+                <h1 style="margin: 0 0 8px 0; font-size: 28px; font-weight: 700;">
+                    <i class="el-icon-film" style="margin-right: 12px;"></i>
+                    快手跟播
+                </h1>
+                <p style="margin: 0; opacity: 0.9; font-size: 16px;">
+                    智能快手直播跟播系统，支持多种互动方式和智能控制
+                </p>
+            </div>
+
+            <!-- 快手特色功能 -->
+            <div class="kuaishou-feature">
+                <h3 style="margin: 0 0 12px 0; color: #1e40af; font-size: 16px; font-weight: 600;">
+                    <el-icon style="margin-right: 8px;"><Lightning /></el-icon>
+                    快手专属功能
+                </h3>
+                <div class="feature-item">
+                    <div class="feature-icon">
+                        <el-icon size="12" color="white"><ChatDotRound /></el-icon>
+                    </div>
+                    <span style="color: #1e40af; font-size: 14px;">智能弹幕发送 - 支持老铁文化用语</span>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">
+                        <el-icon size="12" color="white"><Present /></el-icon>
+                    </div>
+                    <span style="color: #1e40af; font-size: 14px;">礼物互动 - 自动送小礼物增加互动</span>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">
+                        <el-icon size="12" color="white"><User /></el-icon>
+                    </div>
+                    <span style="color: #1e40af; font-size: 14px;">关注主播 - 智能关注优质主播</span>
+                </div>
+            </div>
+
+            <!-- 控制面板 -->
+            <div class="control-panel">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                    <h3 style="margin: 0; color: #1f2937;">跟播控制</h3>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div class="status-indicator" :class="statusClass"></div>
+                        <span style="font-weight: 500; color: #374151;">{{ statusText }}</span>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                    <el-button 
+                        type="primary" 
+                        :disabled="isRunning" 
+                        @click="startFollow"
+                        :icon="VideoPlay">
+                        开始跟播
+                    </el-button>
+                    <el-button 
+                        type="info" 
+                        :disabled="!isRunning" 
+                        @click="pauseFollow"
+                        :icon="VideoPause">
+                        暂停跟播
+                    </el-button>
+                    <el-button 
+                        type="danger" 
+                        :disabled="!isRunning && !isPaused" 
+                        @click="stopFollow"
+                        :icon="VideoCamera">
+                        停止跟播
+                    </el-button>
+                    <el-divider direction="vertical"></el-divider>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="color: #6b7280; font-size: 14px;">发送间隔:</span>
+                        <el-input-number 
+                            v-model="sendInterval" 
+                            :min="8" 
+                            :max="300" 
+                            :step="2"
+                            controls-position="right"
+                            style="width: 120px;">
+                        </el-input-number>
+                        <span style="color: #6b7280; font-size: 14px;">秒</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <el-checkbox v-model="autoGift">自动送礼</el-checkbox>
+                        <el-checkbox v-model="autoFollow">自动关注</el-checkbox>
+                        <el-checkbox v-model="smartMode">智能模式</el-checkbox>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 主内容区 -->
+            <div class="content-grid">
+                <!-- 直播间管理 -->
+                <div class="content-card">
+                    <div class="card-header">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <div>
+                                <h2 style="margin: 0; font-size: 18px; font-weight: 600; color: #1f2937;">快手直播间</h2>
+                                <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 14px;">选择要跟播的快手直播间</p>
+                            </div>
+                            <el-button size="small" @click="showAddRoomDialog" :icon="Plus">
+                                添加直播间
+                            </el-button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div v-if="kuaishouRooms.length === 0" style="text-align: center; color: #9ca3af; padding: 40px 0;">
+                            <el-icon size="48" style="margin-bottom: 16px;"><Film /></el-icon>
+                            <p>暂无快手直播间</p>
+                            <el-button type="primary" @click="showAddRoomDialog">添加第一个直播间</el-button>
+                        </div>
+                        <div v-else>
+                            <div 
+                                v-for="room in kuaishouRooms" 
+                                :key="room.id"
+                                class="room-item"
+                                :class="{ active: selectedRoom?.id === room.id }"
+                                @click="selectRoom(room)">
+                                <div style="display: flex; align-items: center;">
+                                    <el-icon size="20" color="#3b82f6" style="margin-right: 12px;"><Film /></el-icon>
+                                    <div style="flex: 1;">
+                                        <div style="font-weight: 500; color: #1f2937;">{{ room.name }}</div>
+                                        <div style="font-size: 12px; color: #6b7280;">{{ room.create_time }}</div>
+                                        <div v-if="room.product_name" style="font-size: 11px; margin-top: 4px; display: flex; align-items: center; gap: 6px; padding: 4px 8px; background: #dbeafe; border-radius: 4px;">
+                                            <div v-if="room.productCoverObjectUrl" style="width: 16px; height: 16px; border-radius: 2px; overflow: hidden;">
+                                                <img :src="room.productCoverObjectUrl"
+                                                     style="width: 100%; height: 100%; object-fit: cover;"
+                                                     @error="handleImageError">
+                                            </div>
+                                            <el-icon v-else size="12" color="#3b82f6"><ShoppingBag /></el-icon>
+                                            <span style="color: #1e40af; font-weight: 500;">{{ room.product_name }}</span>
+                                            <span v-if="room.product_price" style="color: #ef4444; font-weight: 500;">¥{{ room.product_price }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <el-tag :type="room.status === 1 ? 'primary' : 'danger'" size="small">
+                                        {{ room.status === 1 ? '启用' : '禁用' }}
+                                    </el-tag>
+                                    <el-button size="small" type="text" @click.stop="editRoom(room)">
+                                        编辑
+                                    </el-button>
+                                    <el-dropdown @command="handleDropdownCommand" trigger="click">
+                                        <el-button size="small" type="text">
+                                            更多
+                                            <el-icon style="margin-left: 2px;"><ArrowDown /></el-icon>
+                                        </el-button>
+                                        <template #dropdown>
+                                            <el-dropdown-menu>
+                                                <el-dropdown-item :command="{action: 'bindProduct', room: room}">
+                                                    <el-icon style="margin-right: 6px;"><ShoppingBag /></el-icon>
+                                                    商品绑定
+                                                </el-dropdown-item>
+                                            </el-dropdown-menu>
+                                        </template>
+                                    </el-dropdown>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 话术管理 -->
+                <div class="content-card">
+                    <div class="card-header">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <div>
+                                <h2 style="margin: 0; font-size: 18px; font-weight: 600; color: #1f2937;">绑定话术</h2>
+                                <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 14px;">
+                                    {{ selectedRoom ? `${selectedRoom.name} 的话术` : '请先选择直播间' }}
+                                </p>
+                            </div>
+                            <el-button 
+                                size="small" 
+                                @click="refreshSpeech" 
+                                :disabled="!selectedRoom"
+                                :icon="Refresh">
+                                刷新
+                            </el-button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div v-if="!selectedRoom" style="text-align: center; color: #9ca3af; padding: 40px 0;">
+                            <el-icon size="48" style="margin-bottom: 16px;"><ChatLineRound /></el-icon>
+                            <p>请先选择一个直播间</p>
+                        </div>
+                        <div v-else-if="roomSpeech.length === 0" style="text-align: center; color: #9ca3af; padding: 40px 0;">
+                            <el-icon size="48" style="margin-bottom: 16px;"><ChatLineRound /></el-icon>
+                            <p>该直播间暂无绑定话术</p>
+                            <el-button type="primary" @click="goToSpeechManage">去话术管理添加</el-button>
+                        </div>
+                        <div v-else>
+                            <div v-for="speech in roomSpeech" :key="speech.id" class="speech-item">
+                                <div style="flex: 1; margin-right: 12px;">
+                                    <div style="font-size: 14px; color: #1f2937; margin-bottom: 4px;">
+                                        {{ speech.content }}
+                                    </div>
+                                </div>
+                                <el-tag :type="speech.status === 1 ? 'primary' : 'danger'" size="small">
+                                    {{ speech.status === 1 ? '启用' : '禁用' }}
+                                </el-tag>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 运行日志 -->
+            <div class="content-card">
+                <div class="card-header">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <div>
+                            <h2 style="margin: 0; font-size: 18px; font-weight: 600; color: #1f2937;">运行日志</h2>
+                            <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 14px;">实时显示快手跟播运行状态</p>
+                        </div>
+                        <el-button size="small" @click="clearLogs" :icon="Delete">
+                            清空日志
+                        </el-button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="log-container" ref="logContainer">
+                        <div v-if="logs.length === 0" style="color: #9ca3af; text-align: center; padding: 20px;">
+                            暂无日志信息
+                        </div>
+                        <div v-else>
+                            <div 
+                                v-for="(log, index) in logs" 
+                                :key="index"
+                                class="log-entry"
+                                :class="`log-${log.type}`">
+                                [{{ log.time }}] {{ log.message }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 添加/编辑直播间对话框 -->
+        <el-dialog
+            v-model="roomDialogVisible"
+            :title="roomDialogTitle"
+            width="600px">
+            <el-form :model="roomForm" :rules="roomRules" ref="roomFormRef" label-width="100px">
+                <el-form-item label="直播间名称" prop="name">
+                    <el-input v-model="roomForm.name" placeholder="请输入快手直播间名称"></el-input>
+                </el-form-item>
+                <el-form-item label="绑定商品" prop="product_id">
+                    <el-select v-model="roomForm.product_id" placeholder="请选择要绑定的商品" clearable style="width: 100%;">
+                        <el-option
+                            v-for="product in productOptions"
+                            :key="product.id"
+                            :label="product.name"
+                            :value="product.id">
+                        </el-option>
+                    </el-select>
+                    <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">
+                        选择后该直播间将与指定商品关联，便于管理和识别
+                    </div>
+                </el-form-item>
+                <el-form-item label="状态" prop="status">
+                    <el-radio-group v-model="roomForm.status">
+                        <el-radio :label="1">启用</el-radio>
+                        <el-radio :label="0">禁用</el-radio>
+                    </el-radio-group>
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <span class="dialog-footer">
+                    <el-button @click="roomDialogVisible = false">取消</el-button>
+                    <el-button type="primary" @click="saveRoom" :loading="saving">
+                        {{ isEditRoom ? '更新' : '添加' }}
+                    </el-button>
+                </span>
+            </template>
+        </el-dialog>
+
+        <!-- 商品绑定对话框 -->
+        <el-dialog v-model="productBindDialogVisible" title="商品绑定管理" width="600px">
+            <div style="margin-bottom: 16px;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                    <el-icon size="20" color="#f59e0b"><ShoppingBag /></el-icon>
+                    <span style="font-weight: 500; font-size: 16px;">{{ currentBindRoom?.name || '' }}</span>
+                </div>
+                <div style="font-size: 14px; color: #6b7280;">
+                    为直播间绑定商品，便于管理和自动化识别
+                </div>
+            </div>
+
+            <el-form :model="productBindForm" label-width="100px">
+                <el-form-item label="当前绑定">
+                    <div v-if="!currentBindRoom?.product_name" style="color: #9ca3af; font-size: 14px;">
+                        暂无绑定商品
+                    </div>
+                    <div v-else style="padding: 16px; background: #fefefe; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                        <div style="display: flex; align-items: flex-start; gap: 12px;">
+                            <div v-if="currentBindRoom.productCoverObjectUrl" style="width: 48px; height: 48px; border-radius: 6px; overflow: hidden; flex-shrink: 0;">
+                                <img :src="currentBindRoom.productCoverObjectUrl"
+                                     style="width: 100%; height: 100%; object-fit: cover;"
+                                     @error="handleImageError">
+                            </div>
+                            <div v-else style="width: 48px; height: 48px; background: #93c5fd; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+                                <el-icon size="20" color="white"><Picture /></el-icon>
+                            </div>
+                            <div style="flex: 1;">
+                                <div style="font-size: 15px; font-weight: 500; color: #1e40af; margin-bottom: 4px;">{{ currentBindRoom.product_name }}</div>
+                                <div v-if="currentBindRoom.product_price" style="font-size: 14px; color: #ef4444; font-weight: 500;">
+                                    ¥{{ currentBindRoom.product_price }}
+                                </div>
+                                <div style="font-size: 12px; color: #1e40af; margin-top: 4px;">
+                                    已绑定 • 快手平台商品
+                                </div>
+
+                                <!-- 显示绑定的图片 -->
+                                <div v-if="currentBindRoom.boundImages && currentBindRoom.boundImages.length > 0" style="margin-top: 12px;">
+                                    <div style="font-size: 12px; color: #1e40af; margin-bottom: 6px;">绑定图片 ({{ currentBindRoom.boundImages.length }}张)</div>
+                                    <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                        <div v-for="image in currentBindRoom.boundImages.slice(0, 6)" :key="image.id"
+                                             style="width: 32px; height: 32px; border-radius: 4px; overflow: hidden; border: 1px solid #3b82f6;">
+                                            <img v-if="image.objectUrl" :src="image.objectUrl"
+                                                 style="width: 100%; height: 100%; object-fit: cover;">
+                                            <div v-else style="width: 100%; height: 100%; background: #dbeafe; display: flex; align-items: center; justify-content: center;">
+                                                <el-icon size="12" color="#3b82f6"><Picture /></el-icon>
+                                            </div>
+                                        </div>
+                                        <div v-if="currentBindRoom.boundImages.length > 6"
+                                             style="width: 32px; height: 32px; border-radius: 4px; background: #dbeafe; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #1e40af;">
+                                            +{{ currentBindRoom.boundImages.length - 6 }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </el-form-item>
+
+                <el-form-item label="选择商品">
+                    <el-select v-model="productBindForm.product_id" placeholder="请选择要绑定的商品" clearable style="width: 100%;">
+                        <el-option
+                            v-for="product in productOptions"
+                            :key="product.id"
+                            :label="product.name"
+                            :value="product.id">
+                        </el-option>
+                    </el-select>
+                </el-form-item>
+            </el-form>
+
+            <template #footer>
+                <span class="dialog-footer">
+                    <el-button @click="productBindDialogVisible = false">取消</el-button>
+                    <el-button type="primary" @click="saveProductBinding" :loading="binding">
+                        {{ productBindForm.product_id ? '绑定商品' : '解除绑定' }}
+                    </el-button>
+                </span>
+            </template>
+        </el-dialog>
+    </div>
+
+    <!-- Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Element Plus -->
+    <script src="https://unpkg.com/element-plus/dist/index.full.js"></script>
+    <!-- Element Plus Icons -->
+    <script src="https://unpkg.com/@element-plus/icons-vue/dist/index.iife.js"></script>
+
+    <script>
+        const { createApp, ref, computed, onMounted, nextTick } = Vue;
+        const { ElMessage, ElMessageBox } = ElementPlus;
+
+        const app = createApp({
+            setup() {
+                // 响应式数据
+                const loading = ref(false);
+                const saving = ref(false);
+                const isRunning = ref(false);
+                const isPaused = ref(false);
+                const sendInterval = ref(25); // 快手建议中等间隔
+                const autoGift = ref(false);
+                const autoFollow = ref(false);
+                const smartMode = ref(true);
+                const selectedRoom = ref(null);
+                const kuaishouRooms = ref([]);
+                const roomSpeech = ref([]);
+                const logs = ref([]);
+                const roomDialogVisible = ref(false);
+                const isEditRoom = ref(false);
+                const roomFormRef = ref(null);
+
+                // 表单数据
+                const roomForm = ref({
+                    id: null,
+                    name: '',
+                    status: 1,
+                    product_id: null
+                });
+
+                // 商品绑定相关
+                const productBindDialogVisible = ref(false);
+                const currentBindRoom = ref(null);
+                const productOptions = ref([]);
+                const productBindForm = ref({
+                    product_id: null
+                });
+                const binding = ref(false);
+
+                // 表单验证规则
+                const roomRules = {
+                    name: [
+                        { required: true, message: '请输入直播间名称', trigger: 'blur' }
+                    ]
+                };
+
+                // 计算属性
+                const statusClass = computed(() => {
+                    if (isRunning.value) return 'status-running';
+                    if (isPaused.value) return 'status-paused';
+                    return 'status-stopped';
+                });
+
+                const statusText = computed(() => {
+                    if (isRunning.value) return '运行中';
+                    if (isPaused.value) return '已暂停';
+                    return '已停止';
+                });
+
+                const roomDialogTitle = computed(() => isEditRoom.value ? '编辑直播间' : '添加直播间');
+
+                // 获取pywebview API - 借鉴其他模块的实现
+                const getPywebviewApi = () => {
+                    if (window.pywebview && window.pywebview.api) {
+                        return window.pywebview.api;
+                    } else if (window.parent && window.parent.pywebview && window.parent.pywebview.api) {
+                        return window.parent.pywebview.api;
+                    } else if (window.top && window.top.pywebview && window.top.pywebview.api) {
+                        return window.top.pywebview.api;
+                    }
+                    return null;
+                };
+
+                // 等待API就绪的通用方法
+                const waitForApi = async () => {
+                    let api = getPywebviewApi();
+                    if (!api) {
+                        for (let i = 0; i < 5; i++) {
+                            await new Promise(resolve => setTimeout(resolve, 300));
+                            api = getPywebviewApi();
+                            if (api) break;
+                        }
+                        if (!api) {
+                            throw new Error('无法连接到后端API，请确保应用正常运行');
+                        }
+                    }
+                    return api;
+                };
+
+                // 添加日志
+                const addLog = (message, type = 'info') => {
+                    const now = new Date();
+                    const time = now.toLocaleTimeString();
+                    logs.value.push({ time, message, type });
+                    
+                    // 限制日志数量
+                    if (logs.value.length > 100) {
+                        logs.value = logs.value.slice(-100);
+                    }
+                    
+                    // 自动滚动到底部
+                    nextTick(() => {
+                        const container = document.querySelector('.log-container');
+                        if (container) {
+                            container.scrollTop = container.scrollHeight;
+                        }
+                    });
+                };
+
+                // 加载快手直播间
+                const loadKuaishouRooms = async () => {
+                    try {
+                        const api = await waitForApi();
+                        const result = await api.get_rooms_list('kuaishou', 1);
+                        
+                        if (result && result.success) {
+                            kuaishouRooms.value = result.data || [];
+                        }
+                    } catch (error) {
+                        console.error('加载直播间失败:', error);
+                        ElMessage.error('加载直播间失败');
+                    }
+                };
+
+                // 选择直播间
+                const selectRoom = (room) => {
+                    selectedRoom.value = room;
+                    loadRoomSpeech();
+                    addLog(`选择直播间: ${room.name}`, 'info');
+                };
+
+                // 加载直播间话术
+                const loadRoomSpeech = async () => {
+                    if (!selectedRoom.value) return;
+                    
+                    try {
+                        const api = await waitForApi();
+                        const result = await api.get_speech_list(selectedRoom.value.id, 1);
+                        
+                        if (result && result.success) {
+                            roomSpeech.value = result.data || [];
+                        }
+                    } catch (error) {
+                        console.error('加载话术失败:', error);
+                        ElMessage.error('加载话术失败');
+                    }
+                };
+
+                // 刷新话术
+                const refreshSpeech = () => {
+                    loadRoomSpeech();
+                    addLog('刷新话术列表', 'info');
+                };
+
+                // 跟播控制
+                const startFollow = () => {
+                    if (!selectedRoom.value) {
+                        ElMessage.warning('请先选择直播间');
+                        return;
+                    }
+                    
+                    if (roomSpeech.value.length === 0) {
+                        ElMessage.warning('该直播间没有可用话术');
+                        return;
+                    }
+                    
+                    isRunning.value = true;
+                    isPaused.value = false;
+                    addLog(`开始快手跟播: ${selectedRoom.value.name}`, 'success');
+                    addLog(`发送间隔: ${sendInterval.value}秒`, 'info');
+                    addLog(`自动送礼: ${autoGift.value ? '开启' : '关闭'}`, 'info');
+                    addLog(`自动关注: ${autoFollow.value ? '开启' : '关闭'}`, 'info');
+                    addLog(`智能模式: ${smartMode.value ? '开启' : '关闭'}`, 'info');
+                    
+                    // 这里可以调用后端API开始跟播
+                    ElMessage.success('快手跟播已开始');
+                };
+
+                const pauseFollow = () => {
+                    isPaused.value = true;
+                    isRunning.value = false;
+                    addLog('快手跟播已暂停', 'warning');
+                    ElMessage.warning('跟播已暂停');
+                };
+
+                const stopFollow = () => {
+                    isRunning.value = false;
+                    isPaused.value = false;
+                    addLog('快手跟播已停止', 'error');
+                    ElMessage.info('跟播已停止');
+                };
+
+                // 直播间管理
+                const showAddRoomDialog = () => {
+                    isEditRoom.value = false;
+                    roomForm.value = {
+                        id: null,
+                        name: '',
+                        status: 1
+                    };
+                    roomDialogVisible.value = true;
+                };
+
+                const editRoom = (room) => {
+                    isEditRoom.value = true;
+                    roomForm.value = {
+                        id: room.id,
+                        name: room.name,
+                        status: room.status
+                    };
+                    roomDialogVisible.value = true;
+                };
+
+                const saveRoom = async () => {
+                    if (!roomFormRef.value) {
+                        ElMessage.error('表单引用错误');
+                        return;
+                    }
+
+                    try {
+                        await roomFormRef.value.validate();
+                        saving.value = true;
+                        
+                        const api = await waitForApi();
+                        let result;
+
+                        if (isEditRoom.value) {
+                            result = await api.update_room(
+                                roomForm.value.id,
+                                roomForm.value.name,
+                                'kuaishou',
+                                roomForm.value.status
+                            );
+                        } else {
+                            result = await api.add_room(
+                                roomForm.value.name,
+                                'kuaishou',
+                                roomForm.value.status
+                            );
+                        }
+
+                        if (result && result.success) {
+                            ElMessage.success(result.message);
+                            roomDialogVisible.value = false;
+                            loadKuaishouRooms();
+                            addLog(`${isEditRoom.value ? '更新' : '添加'}直播间: ${roomForm.value.name}`, 'success');
+                        } else {
+                            ElMessage.error(result?.message || '操作失败');
+                        }
+
+                    } catch (error) {
+                        console.error('保存失败:', error);
+                        ElMessage.error('保存失败');
+                    } finally {
+                        saving.value = false;
+                    }
+                };
+
+                // 其他功能
+                const goToSpeechManage = () => {
+                    // 这里可以跳转到话术管理页面
+                    ElMessage.info('请在话术管理页面添加话术并绑定到此直播间');
+                };
+
+                const clearLogs = () => {
+                    logs.value = [];
+                    addLog('日志已清空', 'info');
+                };
+
+                // 下拉菜单命令处理
+                const handleDropdownCommand = (command) => {
+                    const { action, room } = command;
+                    switch (action) {
+                        case 'bindProduct':
+                            bindProduct(room);
+                            break;
+                        case 'editRoom':
+                            editRoom(room);
+                            break;
+                    }
+                };
+
+                // 图片处理函数
+                const productCoverUrlCache = new Map();
+
+                const getProductCoverUrl = async (coverPath) => {
+                    if (!coverPath) return '';
+
+                    // 如果是网络图片，直接返回
+                    if (coverPath.startsWith('http://') || coverPath.startsWith('https://')) {
+                        return coverPath;
+                    }
+
+                    // 检查缓存
+                    if (productCoverUrlCache.has(coverPath)) {
+                        return productCoverUrlCache.get(coverPath);
+                    }
+
+                    // 通过API获取文件Blob
+                    const api = await waitForApi();
+                    if (!api) return '';
+
+                    try {
+                        const result = await api.get_image_blob(coverPath);
+                        if (result.success && result.blob_data) {
+                            // 将base64转换为Blob
+                            const byteCharacters = atob(result.blob_data);
+                            const byteNumbers = new Array(byteCharacters.length);
+                            for (let i = 0; i < byteCharacters.length; i++) {
+                                byteNumbers[i] = byteCharacters.charCodeAt(i);
+                            }
+                            const byteArray = new Uint8Array(byteNumbers);
+                            const blob = new Blob([byteArray], { type: result.mime_type || 'image/jpeg' });
+
+                            // 创建Object URL
+                            const objectUrl = URL.createObjectURL(blob);
+                            productCoverUrlCache.set(coverPath, objectUrl);
+                            return objectUrl;
+                        }
+                    } catch (error) {
+                        console.error('获取商品封面失败:', error);
+                    }
+
+                    return '';
+                };
+
+                const handleImageError = (event) => {
+                    event.target.style.display = 'none';
+                    const parent = event.target.parentElement;
+                    if (parent) {
+                        parent.innerHTML = '<div style="width: 100%; height: 100%; background: #3b82f6; display: flex; align-items: center; justify-content: center;"><i class="el-icon-picture" style="font-size: 16px; color: white;"></i></div>';
+                    }
+                };
+
+                // 商品绑定相关函数
+                const loadProductOptions = async () => {
+                    try {
+                        const api = await waitForApi();
+                        const result = await api.get_products_for_room_binding();
+
+                        if (result && result.success) {
+                            productOptions.value = result.data || [];
+                        } else {
+                            ElMessage.error(result?.message || '加载商品选项失败');
+                        }
+                    } catch (error) {
+                        ElMessage.error('加载商品选项失败');
+                    }
+                };
+
+                const bindProduct = async (room) => {
+                    currentBindRoom.value = room;
+                    productBindForm.value.product_id = room.product_id;
+
+                    // 如果有绑定商品，加载该商品绑定的图片
+                    if (room.product_id) {
+                        try {
+                            const api = await waitForApi();
+                            // 查询该商品绑定的图片列表
+                            const result = await api.query_images_api({
+                                page: 1,
+                                page_size: 50,
+                                product_id: room.product_id,
+                                status: 1
+                            });
+                            if (result && result.success) {
+                                currentBindRoom.value.boundImages = result.data || [];
+                                console.log(`✅ 加载商品绑定图片成功: ${currentBindRoom.value.boundImages.length} 张`);
+                                // 异步加载图片URL
+                                loadBoundImages();
+                            } else {
+                                console.log('该商品暂无绑定图片');
+                                currentBindRoom.value.boundImages = [];
+                            }
+                        } catch (error) {
+                            console.error('加载商品绑定图片失败:', error);
+                            currentBindRoom.value.boundImages = [];
+                        }
+                    } else {
+                        currentBindRoom.value.boundImages = [];
+                    }
+
+                    productBindDialogVisible.value = true;
+                };
+
+                // 加载绑定图片的URL
+                const loadBoundImages = async () => {
+                    if (!currentBindRoom.value.boundImages) return;
+
+                    for (const image of currentBindRoom.value.boundImages) {
+                        if (image.path && !image.objectUrl) {
+                            try {
+                                const objectUrl = await getProductCoverUrl(image.path);
+                                if (objectUrl) {
+                                    image.objectUrl = objectUrl;
+                                }
+                            } catch (error) {
+                                console.error('加载绑定图片URL失败:', error);
+                            }
+                        }
+                    }
+                };
+
+                const saveProductBinding = async () => {
+                    try {
+                        binding.value = true;
+                        const api = await waitForApi();
+
+                        const result = await api.update_room(
+                            currentBindRoom.value.id,
+                            null, null, null,
+                            productBindForm.value.product_id
+                        );
+
+                        if (result && result.success) {
+                            ElMessage.success(productBindForm.value.product_id ? '商品绑定成功' : '商品解绑成功');
+                            productBindDialogVisible.value = false;
+                            await loadKuaishouRooms();
+                        } else {
+                            ElMessage.error(result?.message || '操作失败');
+                        }
+                    } catch (error) {
+                        ElMessage.error('操作失败');
+                    } finally {
+                        binding.value = false;
+                    }
+                };
+
+                // 组件挂载时加载数据
+                onMounted(() => {
+                    loadKuaishouRooms();
+                    loadProductOptions();
+                    addLog('快手跟播系统已启动', 'success');
+                    addLog('提示：快手平台支持多种互动方式，建议开启智能模式', 'info');
+                });
+
+                return {
+                    loading,
+                    saving,
+                    isRunning,
+                    isPaused,
+                    sendInterval,
+                    autoGift,
+                    autoFollow,
+                    smartMode,
+                    selectedRoom,
+                    kuaishouRooms,
+                    roomSpeech,
+                    logs,
+                    roomDialogVisible,
+                    isEditRoom,
+                    roomForm,
+                    roomRules,
+                    roomFormRef,
+                    statusClass,
+                    statusText,
+                    roomDialogTitle,
+                    loadKuaishouRooms,
+                    selectRoom,
+                    loadRoomSpeech,
+                    refreshSpeech,
+                    startFollow,
+                    pauseFollow,
+                    stopFollow,
+                    showAddRoomDialog,
+                    editRoom,
+                    saveRoom,
+                    goToSpeechManage,
+                    clearLogs,
+                    // 商品绑定相关
+                    productBindDialogVisible,
+                    currentBindRoom,
+                    productOptions,
+                    productBindForm,
+                    binding,
+                    bindProduct,
+                    saveProductBinding,
+                    loadProductOptions,
+                    handleDropdownCommand,
+                    getProductCoverUrl,
+                    handleImageError,
+                    loadBoundImages
+                };
+            }
+        });
+
+        // 注册所有图标
+        Object.keys(ElementPlusIconsVue).forEach(key => {
+            app.component(key, ElementPlusIconsVue[key]);
+        });
+
+        app.use(ElementPlus).mount('#app');
+    </script>
+</body>
+</html>

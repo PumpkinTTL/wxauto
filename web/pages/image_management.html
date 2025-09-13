@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OCR图像识别</title>
+    <!-- Element Plus CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <!-- Animate.css -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <style>
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background: #f8fafc;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        /* 页面容器 */
+        .page-container {
+            padding: 16px;
+            height: calc(100vh - 32px);
+            overflow-y: auto;
+        }
+
+        /* 卡片样式 */
+        .content-card {
+            background: white;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        /* 头部样式 */
+        .page-header {
+            padding: 16px 20px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+
+
+
+
+        /* 工具栏样式 */
+        .toolbar {
+            padding: 16px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        /* 表格容器 */
+        .table-container {
+            padding: 0 20px 20px 20px;
+            min-height: 400px;
+            background: white;
+            border-radius: 8px;
+        }
+
+        /* 强制表格显示 */
+        .el-table {
+            display: table !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+
+        /* 图片预览样式 */
+        .image-preview {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border: 1px solid #e5e7eb;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .image-preview:hover {
+            transform: scale(1.05);
+        }
+
+        .no-image {
+            width: 50px;
+            height: 50px;
+            background: #f3f4f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #9ca3af;
+            font-size: 10px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .image-container {
+            position: relative;
+            width: 50px;
+            height: 50px;
+        }
+
+        .loading-image {
+            width: 50px;
+            height: 50px;
+            background: #f3f4f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #9ca3af;
+            font-size: 9px;
+            border: 1px solid #e5e7eb;
+        }
+
+        /* 状态标签样式 */
+        .status-enabled {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-disabled {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        /* 动画效果 */
+        .animate-fade-in {
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 表单样式优化 */
+        .el-form-item__label {
+            font-weight: 500;
+        }
+
+
+
+        /* 简化样式，使用Element Plus默认样式 */
+
+        /* 操作按钮组 */
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* 图片预览对话框 */
+        .image-preview-dialog .el-dialog__body {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            max-height: 500px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        /* 简洁现代页面头部 */
+        .page-header {
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            margin-bottom: 24px;
+            padding: 16px 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 动画效果 */
+        .animate-fade-in-up {
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .page-container {
+                padding: 10px;
+            }
+
+            .toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .filter-group {
+                justify-content: center;
+            }
+
+
+
+
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <div class="page-container animate-fade-in">
+            <!-- 页面头部 -->
+            <div class="content-card page-header">
+                <!-- OCR图像识别说明 -->
+                <el-tag type="info" size="large" style="margin: 16px 0;">
+                    OCR图像识别说明：图片上传是为了方便通过OCR(图像视觉识别)来识别直播间是否存在跟自己产品相关的信息，如果存在的话即代表正在带货自己的产品，所以一个直播间的图片识别不限于商品的图片也可以是一个价格标签一个主播头像。或者其他凡是直播间出现这个元素就代表自己的产品在推中，所以可以截取任何的截图，不论大小不论内容的图片视觉元素，只要认为这个元素与本产品相关跟本直播间相关就可以进行截图并绑定该商品，识别成功后才会进行弹幕装配并按照指定间隔时间去发送。所以商品的创建和图片的绑定尤为的重要！
+                </el-tag>
+            </div>
+
+
+
+            <!-- 主要内容 -->
+            <div class="content-card">
+                <!-- 工具栏 -->
+                <div class="toolbar">
+                    <div class="filter-group">
+                        <el-select
+                            v-model="searchForm.product_id"
+                            placeholder="选择商品"
+                            clearable
+                            size="small"
+                            style="width: 160px;"
+                            @change="searchImages"
+                        >
+                            <el-option label="全部商品" value=""></el-option>
+                            <el-option
+                                v-for="product in productOptions"
+                                :key="product.id"
+                                :label="product.name"
+                                :value="product.id"
+                            ></el-option>
+                        </el-select>
+
+                        <el-select
+                            v-model="searchForm.status"
+                            placeholder="选择状态"
+                            clearable
+                            size="small"
+                            style="width: 100px;"
+                            @change="searchImages"
+                        >
+                            <el-option label="全部状态" value=""></el-option>
+                            <el-option label="启用" :value="1"></el-option>
+                            <el-option label="禁用" :value="0"></el-option>
+                        </el-select>
+                    </div>
+                    
+                    <div style="display: flex; gap: 8px;">
+                        <el-button size="small" type="primary" @click="searchImages" :loading="loading">
+                            <el-icon><Search /></el-icon>
+                            搜索
+                        </el-button>
+                        <el-button size="small" type="success" @click="showAddDialog">
+                            <el-icon><Plus /></el-icon>
+                            添加图片
+                        </el-button>
+                        <el-button size="small" @click="refreshData" :loading="loading">
+                            <el-icon><Refresh /></el-icon>
+                            刷新
+                        </el-button>
+                    </div>
+                </div>
+
+                <!-- 数据表格 -->
+                <div class="table-container">
+                    <el-table
+                        :data="imageList"
+                        v-loading="loading"
+                        element-loading-text="加载中..."
+                        stripe
+                        style="width: 100%"
+                        :default-sort="{ prop: 'create_time', order: 'descending' }"
+                    >
+                        <el-table-column prop="id" label="ID" width="80" sortable></el-table-column>
+                        
+                        <el-table-column label="图片预览" width="120">
+                            <template #default="scope">
+                                <div v-if="scope.row.path" class="image-container">
+                                    <img
+                                        v-if="scope.row.objectUrl"
+                                        :src="scope.row.objectUrl"
+                                        class="image-preview"
+                                        @click="previewImageById(scope.row.id)"
+                                        @error="handleImageError"
+                                    />
+                                    <div v-else class="loading-image">
+                                        加载中...
+                                    </div>
+                                </div>
+                                <div v-else class="no-image">
+                                    无图片
+                                </div>
+                            </template>
+                        </el-table-column>
+                        
+                        <el-table-column prop="path" label="图片路径" min-width="250" show-overflow-tooltip></el-table-column>
+                        
+                        <el-table-column label="关联商品" width="150">
+                            <template #default="scope">
+                                <span v-if="scope.row.product_name" style="color: #3b82f6; font-weight: 500;">
+                                    {{ scope.row.product_name }}
+                                </span>
+                                <span v-else style="color: #9ca3af;">
+                                    未关联
+                                </span>
+                            </template>
+                        </el-table-column>
+                        
+                        <el-table-column label="状态" width="100">
+                            <template #default="scope">
+                                <el-tag
+                                    :type="scope.row.status === 1 ? 'success' : 'danger'"
+                                    size="small"
+                                    :class="scope.row.status === 1 ? 'status-enabled' : 'status-disabled'"
+                                >
+                                    {{ scope.row.status === 1 ? '启用' : '禁用' }}
+                                </el-tag>
+                            </template>
+                        </el-table-column>
+                        
+                        <el-table-column prop="remark" label="备注" min-width="200" show-overflow-tooltip></el-table-column>
+                        
+                        <el-table-column prop="create_time" label="创建时间" width="180" sortable>
+                            <template #default="scope">
+                                {{ formatDateTime(scope.row.create_time) }}
+                            </template>
+                        </el-table-column>
+                        
+                        <el-table-column label="操作" width="160" fixed="right">
+                            <template #default="scope">
+                                <div class="action-buttons">
+                                    <el-button size="small" type="primary" @click="editImage(scope.row)" :loading="editLoading" link>
+                                        <el-icon><Edit /></el-icon>
+                                        编辑
+                                    </el-button>
+                                    <el-button size="small" type="danger" @click="deleteImage(scope.row)" link>
+                                        <el-icon><Delete /></el-icon>
+                                        删除
+                                    </el-button>
+                                </div>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+
+                    <!-- 分页 -->
+                    <div style="margin-top: 20px; text-align: center;">
+                        <el-pagination
+                            v-model:current-page="pagination.page"
+                            v-model:page-size="pagination.pageSize"
+                            :page-sizes="[10, 20, 50, 100]"
+                            :total="pagination.total"
+                            layout="total, sizes, prev, pager, next, jumper"
+                            @size-change="handleSizeChange"
+                            @current-change="handleCurrentChange"
+                        />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 添加/编辑图片对话框 -->
+        <el-dialog
+            v-model="dialogVisible"
+            :title="dialogTitle"
+            width="520px"
+            :close-on-click-modal="false"
+        >
+            <el-form
+                ref="imageFormRef"
+                :model="imageForm"
+                :rules="imageRules"
+                label-width="80px"
+                label-position="left"
+            >
+                <el-form-item label="图片路径" prop="path">
+                    <el-input
+                        v-model="imageForm.path"
+                        placeholder="图片路径（自动生成）"
+                        readonly
+                        size="small"
+                    >
+                        <template #append>
+                            <el-button type="primary" @click="selectImageFile" :loading="uploadingImage">
+                                选择图片
+                            </el-button>
+                        </template>
+                    </el-input>
+                    <div v-if="imageForm.path && imagePreviewUrl" style="margin-top: 8px; margin-bottom: 12px;">
+                        <img
+                            :src="imagePreviewUrl"
+                            style="max-width: 160px; max-height: 120px; border: 1px solid #e5e7eb; cursor: pointer;"
+                            @click="previewImage(imagePreviewUrl)"
+                            @error="handleFormImageError"
+                        />
+                    </div>
+                    <div v-if="!imageForm.path" style="margin-top: 8px;">
+                        <el-tag size="small" type="info" effect="plain" style="font-size: 11px; padding: 2px 8px;">
+                            <el-icon style="margin-right: 4px; font-size: 12px;"><Upload /></el-icon>
+                            点击选择图片按钮上传文件
+                        </el-tag>
+                    </div>
+                </el-form-item>
+                
+                <el-form-item label="关联商品" prop="product_id">
+                    <el-select
+                        v-model="imageForm.product_id"
+                        placeholder="选择关联商品（可选）"
+                        clearable
+                        style="width: 100%;"
+                    >
+                        <el-option
+                            v-for="product in productOptions"
+                            :key="product.id"
+                            :label="product.name"
+                            :value="product.id"
+                        ></el-option>
+                    </el-select>
+                </el-form-item>
+                
+                <el-form-item label="状态" prop="status">
+                    <el-radio-group v-model="imageForm.status">
+                        <el-radio :label="1">启用</el-radio>
+                        <el-radio :label="0">禁用</el-radio>
+                    </el-radio-group>
+                </el-form-item>
+                
+                <el-form-item label="备注信息" prop="remark">
+                    <el-input
+                        v-model="imageForm.remark"
+                        type="textarea"
+                        :rows="3"
+                        placeholder="请输入备注信息（可选）"
+                        maxlength="500"
+                        show-word-limit
+                    />
+                </el-form-item>
+            </el-form>
+            
+            <template #footer>
+                <div style="text-align: right;">
+                    <el-button @click="dialogVisible = false">取消</el-button>
+                    <el-button type="primary" @click="submitImage" :loading="submitLoading">
+                        {{ isEdit ? '更新' : '添加' }}
+                    </el-button>
+                </div>
+            </template>
+        </el-dialog>
+
+        <!-- 图片预览对话框 -->
+        <el-dialog
+            v-model="previewVisible"
+            title="图片预览"
+            width="80%"
+            class="image-preview-dialog"
+        >
+            <img :src="previewImageUrl" class="preview-image" @error="handlePreviewError" />
+        </el-dialog>
+    </div>
+
+    <!-- Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Element Plus -->
+    <script src="https://unpkg.com/element-plus/dist/index.full.js"></script>
+    <!-- Element Plus Icons -->
+    <script src="https://unpkg.com/@element-plus/icons-vue/dist/index.iife.js"></script>
+
+    <script>
+        const { createApp, ref, reactive, computed, onMounted, nextTick } = Vue;
+        const { ElMessage, ElMessageBox } = ElementPlus;
+
+        const app = createApp({
+            setup() {
+                // 获取pywebview API
+                const getPywebviewApi = () => {
+                    if (window.pywebview && window.pywebview.api) {
+                        return window.pywebview.api;
+                    } else if (window.parent && window.parent.pywebview && window.parent.pywebview.api) {
+                        return window.parent.pywebview.api;
+                    } else if (window.top && window.top.pywebview && window.top.pywebview.api) {
+                        return window.top.pywebview.api;
+                    }
+                    return null;
+                };
+
+                // 响应式数据
+                const loading = ref(false);
+                const submitLoading = ref(false);
+                const uploadingImage = ref(false);
+                const imageList = ref([]);
+                const productOptions = ref([]);
+                const dialogVisible = ref(false);
+                const previewVisible = ref(false);
+                const previewImageUrl = ref('');
+                const isEdit = ref(false);
+                const editLoading = ref(false);
+                const imageFormRef = ref(null);
+
+                // 搜索表单
+                const searchForm = reactive({
+                    product_id: '',
+                    status: ''
+                });
+
+                // 分页数据
+                const pagination = reactive({
+                    page: 1,
+                    pageSize: 20,
+                    total: 0
+                });
+
+                // 图片表单
+                const imageForm = reactive({
+                    id: null,
+                    path: '',
+                    product_id: '',
+                    status: 1,
+                    remark: ''
+                });
+
+                // 图片预览URL
+                const imagePreviewUrl = ref('');
+
+                // 表单验证规则
+                const imageRules = {
+                    path: [
+                        { required: true, message: '请输入图片路径', trigger: 'blur' },
+                        { min: 1, max: 500, message: '图片路径长度在 1 到 500 个字符', trigger: 'blur' }
+                    ],
+                    status: [
+                        { required: true, message: '请选择状态', trigger: 'change' }
+                    ]
+                };
+
+                // 计算属性
+                const dialogTitle = computed(() => {
+                    return isEdit.value ? '编辑图片' : '添加图片';
+                });
+
+                // 方法
+                const loadImages = async () => {
+                    loading.value = true;
+                    try {
+                        const api = getPywebviewApi();
+                        if (!api) {
+                            ElMessage.error('API不可用');
+                            return;
+                        }
+
+                        const params = {
+                            page: pagination.page,
+                            page_size: pagination.pageSize,
+                            product_id: searchForm.product_id || null,
+                            status: searchForm.status !== '' ? searchForm.status : null
+                        };
+
+                        const result = await api.query_images_api(params);
+
+                        if (result.success) {
+                            imageList.value = result.data || [];
+                            pagination.total = result.total || 0;
+
+                            console.log('✅ 图片数据加载成功:', {
+                                count: imageList.value.length,
+                                total: pagination.total,
+                                data: imageList.value
+                            });
+
+                            // 预加载表格图片
+                            nextTick(() => {
+                                loadTableImages();
+                            });
+                        } else {
+                            console.error('❌ 图片数据加载失败:', result.message);
+                            ElMessage.error(result.message || '加载图片列表失败');
+                            imageList.value = [];
+                            pagination.total = 0;
+                        }
+                    } catch (error) {
+                        console.error('加载图片列表失败:', error);
+                        ElMessage.error('加载图片列表失败');
+                        imageList.value = [];
+                        pagination.total = 0;
+                    } finally {
+                        loading.value = false;
+                    }
+                };
+
+                const loadProductOptions = async () => {
+                    try {
+                        const api = getPywebviewApi();
+                        if (!api) return;
+
+                        const result = await api.get_products_simple_api();
+                        if (result.success) {
+                            productOptions.value = result.data || [];
+                        } else {
+                            console.error('加载商品选项失败:', result.message);
+                            productOptions.value = [];
+                        }
+                    } catch (error) {
+                        console.error('加载商品选项失败:', error);
+                        productOptions.value = [];
+                    }
+                };
+
+                const searchImages = () => {
+                    pagination.page = 1;
+                    loadImages();
+                };
+
+                const refreshData = () => {
+                    loadImages();
+                    loadProductOptions();
+                };
+
+                const showAddDialog = () => {
+                    isEdit.value = false;
+                    resetForm();
+                    dialogVisible.value = true;
+                };
+
+                const editImage = async (image) => {
+                    editLoading.value = true;
+
+                    try {
+                        isEdit.value = true;
+                        Object.assign(imageForm, {
+                            id: image.id,
+                            path: image.path || '',
+                            product_id: image.product_id || '',
+                            status: image.status !== undefined ? image.status : 1,
+                            remark: image.remark || ''
+                        });
+
+                        // 加载图片预览
+                        if (image.path) {
+                            try {
+                                const api = getPywebviewApi();
+                                if (api) {
+                                    const previewResult = await api.get_image_data_url(image.path);
+                                    if (previewResult.success) {
+                                        imagePreviewUrl.value = previewResult.data_url;
+                                    }
+                                }
+                            } catch (error) {
+                                console.error('加载图片预览失败:', error);
+                            }
+                        }
+
+                        dialogVisible.value = true;
+                    } finally {
+                        editLoading.value = false;
+                    }
+                };
+
+                const resetForm = () => {
+                    Object.assign(imageForm, {
+                        id: null,
+                        path: '',
+                        product_id: '',
+                        status: 1,
+                        remark: ''
+                    });
+                    imagePreviewUrl.value = ''; // 清空预览URL
+                    if (imageFormRef.value) {
+                        imageFormRef.value.clearValidate();
+                    }
+                };
+
+                const submitImage = async () => {
+                    if (!imageFormRef.value) return;
+
+                    try {
+                        const valid = await imageFormRef.value.validate();
+                        if (!valid) return;
+                    } catch (error) {
+                        return;
+                    }
+
+                    const api = getPywebviewApi();
+                    if (!api) {
+                        ElMessage.error('API不可用');
+                        return;
+                    }
+
+                    submitLoading.value = true;
+                    try {
+                        const imageData = {
+                            path: imageForm.path.trim(),
+                            product_id: imageForm.product_id || null,
+                            status: imageForm.status,
+                            remark: imageForm.remark.trim()
+                        };
+
+                        let result;
+                        if (isEdit.value) {
+                            imageData.id = imageForm.id;
+                            result = await api.update_image_api(imageData);
+                        } else {
+                            result = await api.add_image_api(imageData);
+                        }
+
+                        if (result.success) {
+                            ElMessage.success(result.message || (isEdit.value ? '图片更新成功' : '图片添加成功'));
+                            dialogVisible.value = false;
+                            loadImages();
+                        } else {
+                            ElMessage.error(result.message || (isEdit.value ? '图片更新失败' : '图片添加失败'));
+                        }
+                    } catch (error) {
+                        console.error('提交图片失败:', error);
+                        ElMessage.error(isEdit.value ? '图片更新失败' : '图片添加失败');
+                    } finally {
+                        submitLoading.value = false;
+                    }
+                };
+
+                const deleteImage = async (image) => {
+                    try {
+                        await ElMessageBox.confirm(
+                            `确定要删除这张图片吗？`,
+                            '确认删除',
+                            {
+                                confirmButtonText: '确定删除',
+                                cancelButtonText: '取消',
+                                type: 'warning',
+                                confirmButtonClass: 'el-button--danger'
+                            }
+                        );
+
+                        const api = getPywebviewApi();
+                        if (!api) {
+                            ElMessage.error('API不可用');
+                            return;
+                        }
+
+                        const result = await api.delete_image_api(image.id);
+
+                        if (result.success) {
+                            ElMessage.success(result.message || '图片删除成功');
+                            loadImages();
+                        } else {
+                            ElMessage.error(result.message || '图片删除失败');
+                        }
+                    } catch (error) {
+                        if (error !== 'cancel') {
+                            console.error('删除图片失败:', error);
+                            ElMessage.error('图片删除失败');
+                        }
+                    }
+                };
+
+                const previewImage = (imageUrl) => {
+                    previewImageUrl.value = imageUrl;
+                    previewVisible.value = true;
+                };
+
+                const handleSizeChange = (size) => {
+                    pagination.pageSize = size;
+                    pagination.page = 1;
+                    loadImages();
+                };
+
+                const handleCurrentChange = (page) => {
+                    pagination.page = page;
+                    loadImages();
+                };
+
+                const formatDateTime = (dateTime) => {
+                    if (!dateTime) return '-';
+                    try {
+                        const date = new Date(dateTime);
+                        return date.toLocaleString('zh-CN', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                    } catch (error) {
+                        return dateTime;
+                    }
+                };
+
+                const handleImageError = (event) => {
+                    event.target.style.display = 'none';
+                    const noImageDiv = document.createElement('div');
+                    noImageDiv.className = 'no-image';
+                    noImageDiv.textContent = '加载失败';
+                    event.target.parentNode.appendChild(noImageDiv);
+                };
+
+                const handlePreviewError = () => {
+                    ElMessage.error('图片预览失败');
+                };
+
+                const selectImageFile = async () => {
+                    try {
+                        const api = getPywebviewApi();
+                        if (!api) {
+                            ElMessage.error('API不可用');
+                            return;
+                        }
+
+                        uploadingImage.value = true;
+
+                        // 选择图片文件
+                        const selectResult = await api.select_image_file();
+                        if (!selectResult.success) {
+                            if (selectResult.message !== '未选择文件') {
+                                ElMessage.error(selectResult.message);
+                            }
+                            return;
+                        }
+
+                        // 上传图片文件
+                        const uploadResult = await api.upload_image_file(
+                            selectResult.file_path,
+                            selectResult.filename
+                        );
+
+                        if (uploadResult.success) {
+                            imageForm.path = uploadResult.path;
+
+                            // 立即加载图片预览
+                            try {
+                                const previewResult = await api.get_image_data_url(uploadResult.path);
+                                if (previewResult.success) {
+                                    imagePreviewUrl.value = previewResult.data_url;
+                                }
+                            } catch (error) {
+                                console.error('加载图片预览失败:', error);
+                            }
+
+                            ElMessage.success('图片上传成功');
+                        } else {
+                            ElMessage.error(uploadResult.message || '图片上传失败');
+                        }
+
+                    } catch (error) {
+                        console.error('选择图片失败:', error);
+                        ElMessage.error('选择图片失败');
+                    } finally {
+                        uploadingImage.value = false;
+                    }
+                };
+
+                const loadImagePreviews = async () => {
+                    const api = getPywebviewApi();
+                    if (!api) return;
+
+                    for (const image of imageList.value) {
+                        if (image.path) {
+                            try {
+                                const result = await api.get_image_data_url(image.path);
+                                if (result.success) {
+                                    // 找到对应的img元素并设置src
+                                    const imgElement = document.querySelector(`img[ref="image-${image.id}"]`);
+                                    if (imgElement) {
+                                        imgElement.src = result.data_url;
+                                        imgElement.style.display = 'block';
+                                        // 隐藏加载提示
+                                        const loadingElement = imgElement.parentNode.querySelector('.loading-image');
+                                        if (loadingElement) {
+                                            loadingElement.style.display = 'none';
+                                        }
+                                    }
+                                }
+                            } catch (error) {
+                                console.error('加载图片预览失败:', error);
+                            }
+                        }
+                    }
+                };
+
+                const previewImageById = async (imageId) => {
+                    const api = getPywebviewApi();
+                    if (!api) return;
+
+                    const image = imageList.value.find(img => img.id === imageId);
+                    if (image && image.path) {
+                        try {
+                            const result = await api.get_image_data_url(image.path);
+                            if (result.success) {
+                                previewImage(result.data_url);
+                            } else {
+                                ElMessage.error('无法预览图片');
+                            }
+                        } catch (error) {
+                            console.error('预览图片失败:', error);
+                            ElMessage.error('预览图片失败');
+                        }
+                    }
+                };
+
+                const getImageUrl = async (imagePath) => {
+                    if (!imagePath) return '';
+
+                    // 如果是网络图片，直接返回
+                    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+                        return imagePath;
+                    }
+
+                    const api = getPywebviewApi();
+                    if (!api) return '';
+
+                    try {
+                        // 通过API获取图片数据URL
+                        const result = await api.get_image_data_url(imagePath);
+                        if (result.success) {
+                            return result.data_url;
+                        } else {
+                            console.error('获取图片失败:', result.message);
+                            return '';
+                        }
+                    } catch (error) {
+                        console.error('获取图片失败:', error);
+                        return '';
+                    }
+                };
+
+                // 图片URL缓存
+                const imageUrlCache = new Map();
+
+                const getTableImageUrl = async (imagePath) => {
+                    if (!imagePath) return '';
+
+                    // 如果是网络图片，直接返回
+                    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+                        return imagePath;
+                    }
+
+                    // 检查缓存
+                    if (imageUrlCache.has(imagePath)) {
+                        return imageUrlCache.get(imagePath);
+                    }
+
+                    // 通过API获取文件Blob
+                    const api = getPywebviewApi();
+                    if (!api) return '';
+
+                    try {
+                        const result = await api.get_image_blob(imagePath);
+                        if (result.success && result.blob_data) {
+                            // 将base64转换为Blob
+                            const byteCharacters = atob(result.blob_data);
+                            const byteNumbers = new Array(byteCharacters.length);
+                            for (let i = 0; i < byteCharacters.length; i++) {
+                                byteNumbers[i] = byteCharacters.charCodeAt(i);
+                            }
+                            const byteArray = new Uint8Array(byteNumbers);
+                            const blob = new Blob([byteArray], { type: result.mime_type || 'image/jpeg' });
+
+                            // 创建Object URL
+                            const objectUrl = URL.createObjectURL(blob);
+                            imageUrlCache.set(imagePath, objectUrl);
+                            return objectUrl;
+                        }
+                    } catch (error) {
+                        console.error('获取图片失败:', error);
+                    }
+
+                    return '';
+                };
+
+                const loadTableImages = async () => {
+                    console.log('🖼️ 开始加载表格图片...');
+
+                    for (const image of imageList.value) {
+                        if (image.path && !image.objectUrl) {
+                            try {
+                                const objectUrl = await getTableImageUrl(image.path);
+                                if (objectUrl) {
+                                    image.objectUrl = objectUrl;
+                                }
+                            } catch (error) {
+                                console.error('加载表格图片失败:', image.path, error);
+                            }
+                        }
+                    }
+
+                    console.log('✅ 表格图片加载完成');
+                };
+
+                const handleFormImageError = (event) => {
+                    handleImageError(event);
+                };
+
+                // 生命周期
+                onMounted(() => {
+                    console.log('🚀 OCR图像识别页面已挂载，开始加载数据...');
+                    console.log('📊 当前imageList状态:', imageList.value);
+                    console.log('📊 当前loading状态:', loading.value);
+
+                    loadImages();
+                    loadProductOptions();
+                });
+
+                return {
+                    loading,
+                    submitLoading,
+                    uploadingImage,
+                    imageList,
+                    productOptions,
+                    dialogVisible,
+                    previewVisible,
+                    previewImageUrl,
+                    isEdit,
+                    imageFormRef,
+                    searchForm,
+                    pagination,
+                    imageForm,
+                    imageRules,
+                    dialogTitle,
+                    loadImages,
+                    loadProductOptions,
+                    searchImages,
+                    refreshData,
+                    showAddDialog,
+                    editImage,
+                    resetForm,
+                    submitImage,
+                    deleteImage,
+                    previewImage,
+                    handleSizeChange,
+                    handleCurrentChange,
+                    formatDateTime,
+                    handleImageError,
+                    handlePreviewError,
+                    loadImagePreviews,
+                    previewImageById,
+                    selectImageFile,
+                    getImageUrl,
+                    getTableImageUrl,
+                    loadTableImages,
+                    editLoading,
+                    handleFormImageError,
+                    imagePreviewUrl
+                };
+            }
+        });
+
+        // 注册所有图标
+        Object.keys(ElementPlusIconsVue).forEach(key => {
+            app.component(key, ElementPlusIconsVue[key]);
+        });
+
+        app.use(ElementPlus).mount('#app');
+    </script>
+</body>
+
+</html>

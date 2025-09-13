@@ -1,0 +1,1717 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>微信自动化工具</title>
+    <!-- Element Plus CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <!-- Element Plus Icons -->
+    <script src="//cdn.jsdelivr.net/npm/@element-plus/icons-vue"></script>
+    <!-- Animate.css -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #f1f5f9 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-size: 13px;
+            overflow: hidden;
+        }
+
+        .main-container {
+            min-height: 100vh;
+            padding: 12px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* 功能卡片区域 */
+        .cards-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .function-card {
+            background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow:
+                0 4px 20px rgba(0, 0, 0, 0.08),
+                0 1px 3px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            height: fit-content;
+            backdrop-filter: blur(10px);
+        }
+
+        .function-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899, #f59e0b);
+            border-radius: 16px 16px 0 0;
+        }
+
+        .function-card::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.03) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .function-card:hover {
+            transform: translateY(-6px) scale(1.02);
+            box-shadow:
+                0 12px 40px rgba(0, 0, 0, 0.15),
+                0 4px 12px rgba(59, 130, 246, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        .function-card:hover::after {
+            opacity: 1;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .card-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            color: white;
+            font-size: 22px;
+            box-shadow:
+                0 4px 12px rgba(59, 130, 246, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-icon::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transform: rotate(45deg);
+            transition: transform 0.6s ease;
+        }
+
+        .function-card:hover .card-icon::before {
+            transform: rotate(45deg) translate(100%, 100%);
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1e293b;
+            margin: 0;
+        }
+
+        .card-subtitle {
+            font-size: 12px;
+            color: #64748b;
+            margin: 2px 0 0 0;
+        }
+
+        /* 控制台区域 */
+        .console-section {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow:
+                0 2px 8px rgba(0, 0, 0, 0.06),
+                0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e2e8f0;
+            position: relative;
+            min-height: 400px;
+            flex: 1;
+        }
+
+        .console-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .console-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #1e293b;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .console-title .el-icon {
+            font-size: 18px;
+            color: #3b82f6;
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 4px;
+            padding: 2px;
+            background: #f1f5f9;
+            border-radius: 6px;
+        }
+
+        .tab-buttons .el-button {
+            margin: 0;
+            border: none;
+            background: transparent;
+            color: #64748b !important;
+        }
+
+        .tab-buttons .el-button.el-button--primary {
+            background: #ffffff !important;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            color: #3b82f6 !important;
+        }
+
+        .console-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .console-btn {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .console-btn.close { background: #ff5f57; }
+        .console-btn.minimize { background: #ffbd2e; }
+        .console-btn.maximize { background: #28ca42; }
+
+        .console-content {
+            height: 350px;
+            background: #f8fafc;
+            border-radius: 6px;
+            padding: 12px;
+            overflow-y: auto;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.5;
+            border: 1px solid #e2e8f0;
+        }
+
+        .console-line {
+            margin-bottom: 4px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            padding: 4px 8px;
+            border-left: 3px solid transparent;
+            border-radius: 4px;
+            background: #ffffff;
+            transition: all 0.2s ease;
+        }
+
+        .console-line:hover {
+            background: #f1f5f9;
+        }
+
+        .log-info {
+            color: #3b82f6;
+            border-left-color: #3b82f6;
+            background: #eff6ff;
+        }
+        .log-warning {
+            color: #f59e0b;
+            border-left-color: #f59e0b;
+            background: #fffbeb;
+        }
+        .log-error {
+            color: #ef4444;
+            border-left-color: #ef4444;
+            background: #fef2f2;
+        }
+        .log-success {
+            color: #10b981;
+            border-left-color: #10b981;
+            background: #ecfdf5;
+        }
+
+        /* 滚动条样式 */
+        .console-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .console-content::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 3px;
+        }
+
+        .console-content::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+
+        .console-content::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* 输入框样式 */
+        .el-input__wrapper {
+            background: rgba(255, 255, 255, 0.9) !important;
+            border: 1px solid rgba(255, 255, 255, 0.3) !important;
+            border-radius: 8px !important;
+            transition: all 0.3s ease !important;
+        }
+
+        .el-input__wrapper:hover {
+            border-color: #667eea !important;
+        }
+
+        .el-input__wrapper.is-focus {
+            border-color: #667eea !important;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2) !important;
+        }
+
+        /* 按钮样式 */
+        .action-btn {
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) !important;
+            border: none !important;
+            border-radius: 6px !important;
+            transition: all 0.3s ease !important;
+            font-size: 14px !important;
+            height: 36px !important;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-1px) !important;
+            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3) !important;
+        }
+
+        /* 状态指示器 */
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-ready {
+            background: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+        }
+
+        .status-processing {
+            background: rgba(59, 130, 246, 0.1);
+            color: #3b82f6;
+        }
+
+        .status-error {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+        }
+
+        .status-warning {
+            background: rgba(245, 158, 11, 0.1);
+            color: #f59e0b;
+        }
+
+        /* 动画效果 */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        /* 控制面板 */
+        .control-panel {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow:
+                0 2px 8px rgba(0, 0, 0, 0.06),
+                0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e2e8f0;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .control-panel:hover {
+            box-shadow:
+                0 4px 12px rgba(0, 0, 0, 0.1),
+                0 2px 6px rgba(59, 130, 246, 0.1);
+            border-color: #3b82f6;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .panel-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #1e293b;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .panel-title .el-icon {
+            font-size: 18px;
+            color: #3b82f6;
+        }
+
+        .status-indicators {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            color: #64748b;
+            padding: 3px 8px;
+            background: #f8fafc;
+            border-radius: 4px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .status-ready {
+            color: #10b981;
+            background: #ecfdf5;
+            border-color: #d1fae5;
+        }
+
+        .status-error {
+            color: #ef4444;
+            background: #fef2f2;
+            border-color: #fecaca;
+        }
+
+        .status-warning {
+            color: #f59e0b;
+            background: #fffbeb;
+            border-color: #fed7aa;
+        }
+
+        .pulse {
+            animation: pulse-dot 1.5s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.2); }
+        }
+
+        .panel-content {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .control-group {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: #ffffff;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s ease;
+        }
+
+        .control-group:hover {
+            border-color: #3b82f6;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+        }
+
+        .group-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+            color: #374151;
+            font-size: 13px;
+        }
+
+        .group-header .el-icon {
+            font-size: 16px;
+            color: #3b82f6;
+        }
+
+        .group-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .user-avatar-small {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+        }
+
+        /* 常用语选择样式 */
+        .phrase-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .phrase-item:hover {
+            border-color: #3b82f6;
+            background-color: #f8fafc;
+        }
+
+        .phrase-item.selected {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+
+        .phrase-content {
+            flex: 1;
+            color: #374151;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 1200px) {
+            .cards-section {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                padding: 12px;
+                gap: 12px;
+            }
+
+            .cards-section {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .function-card {
+                padding: 16px;
+            }
+
+            .table-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+
+            .console-content {
+                height: 250px;
+            }
+
+            .console-section {
+                min-height: 320px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .main-container {
+                padding: 8px;
+                gap: 8px;
+            }
+
+            .cards-section {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+
+            .function-card {
+                padding: 12px;
+            }
+
+            .card-title {
+                font-size: 14px;
+            }
+
+            .card-subtitle {
+                font-size: 11px;
+            }
+
+            .console-content {
+                height: 200px;
+            }
+
+            .console-section {
+                min-height: 270px;
+            }
+
+            /* 隐藏部分表格列 */
+            .el-table .hidden-xs {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="main-container">
+            <!-- 集成控制面板 -->
+            <div class="control-panel animate__animated animate__fadeInUp">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <el-icon><Setting /></el-icon>
+                        <span>微信自动化控制面板</span>
+                    </div>
+                    <div class="status-indicators">
+                        <span class="status-indicator" :class="wechatStatus.class">
+                            <div class="status-dot" :class="{ pulse: wechatStatus.connected }"></div>
+                            微信: {{ wechatStatus.text }}
+                        </span>
+                        <span class="status-indicator status-ready">
+                            <div class="status-dot"></div>
+                            引擎: 就绪
+                        </span>
+                        <span class="status-indicator status-ready">
+                            <div class="status-dot"></div>
+                            截图: 正常
+                        </span>
+                        <el-button size="small" @click="checkWechatStatus" :loading="statusChecking">
+                            <el-icon><Refresh /></el-icon>
+                        </el-button>
+                    </div>
+                </div>
+
+                <div class="panel-content">
+                    <!-- 用户选择区域 -->
+                    <div class="control-group">
+                        <div class="group-header">
+                            <el-icon><User /></el-icon>
+                            <span>用户数据</span>
+                            <el-tag type="info" size="small">{{ users.length }} 人</el-tag>
+                            <el-tag type="primary" size="small">已选 {{ selectedUsers.length }} 人</el-tag>
+                        </div>
+                        <div class="group-actions">
+                            <el-button size="small" @click="showUserDialog = true" :disabled="users.length === 0">
+                                <el-icon><Search /></el-icon>
+                                选择用户
+                            </el-button>
+                            <el-button size="small" @click="loadUsers" :loading="loadingUsers">
+                                <el-icon><Refresh /></el-icon>
+                                刷新
+                            </el-button>
+                        </div>
+                    </div>
+
+                    <!-- 验证消息区域 -->
+                    <div class="control-group">
+                        <div class="group-header">
+                            <el-icon><ChatLineRound /></el-icon>
+                            <span>验证消息</span>
+                            <el-tag type="success" size="small">已选 {{ selectedPhrases.length }} 条</el-tag>
+                        </div>
+                        <div class="group-actions">
+                            <el-button size="small" @click="showPhraseDialog = true" type="primary">
+                                <el-icon><Edit /></el-icon>
+                                选择常用语
+                            </el-button>
+                            <el-input
+                                v-model="customMessage"
+                                placeholder="或输入自定义消息..."
+                                size="small"
+                                style="width: 200px; margin-left: 8px;"
+                                clearable
+                            />
+                        </div>
+                    </div>
+
+
+
+                    <!-- 批量操作区域 -->
+                    <div class="control-group">
+                        <div class="group-header">
+                            <el-icon><UserPlus /></el-icon>
+                            <span>批量操作</span>
+                        </div>
+                        <div class="group-actions">
+                            <el-button
+                                type="primary"
+                                class="action-btn"
+                                @click="batchAddFriends"
+                                :loading="isProcessing"
+                                :disabled="selectedUsers.length === 0 || (selectedPhrases.length === 0 && !customMessage)"
+                            >
+                                <el-icon><Plus /></el-icon>
+                                添加 {{ selectedUsers.length }} 个好友
+                            </el-button>
+                            <el-button size="small" @click="clearAllSelections">
+                                <el-icon><Delete /></el-icon>
+                                清空选择
+                            </el-button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+
+            <!-- 控制台和日志区域 -->
+            <div class="console-section animate__animated animate__fadeInUp" style="animation-delay: 0.5s;">
+                <div class="console-header">
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <div class="console-title">
+                            <el-icon><Monitor /></el-icon>
+                            <span>{{ activeTab === 'console' ? '实时控制台' : '操作日志' }}</span>
+                            <span style="font-size: 12px; opacity: 0.7; margin-left: 8px;">
+                                {{ activeTab === 'console' ? new Date().toLocaleString() : `共 ${userLogs.length} 条记录` }}
+                            </span>
+                        </div>
+                        <div class="tab-buttons">
+                            <el-button
+                                size="small"
+                                :type="activeTab === 'console' ? 'primary' : ''"
+                                @click="activeTab = 'console'"
+                            >
+                                <el-icon><Monitor /></el-icon>
+                                控制台
+                            </el-button>
+                            <el-button
+                                size="small"
+                                :type="activeTab === 'logs' ? 'primary' : ''"
+                                @click="activeTab = 'logs'"
+                            >
+                                <el-icon><Document /></el-icon>
+                                日志
+                            </el-button>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <el-button
+                            v-if="isProcessing && activeTab === 'console'"
+                            size="small"
+                            type="danger"
+                            @click="stopProcessing"
+                            :loading="false"
+                        >
+                            <el-icon><Close /></el-icon>
+                            终止操作
+                        </el-button>
+                        <el-button v-if="activeTab === 'console'" size="small" @click="clearConsole">
+                            <el-icon><Delete /></el-icon>
+                            清空
+                        </el-button>
+                        <el-button v-if="activeTab === 'console'" size="small" @click="scrollToBottom">
+                            <el-icon><Bottom /></el-icon>
+                            底部
+                        </el-button>
+                        <el-button v-if="activeTab === 'logs'" size="small" @click="loadUserLogs" :loading="loadingLogs">
+                            <el-icon><Refresh /></el-icon>
+                            刷新
+                        </el-button>
+                        <el-button v-if="activeTab === 'logs'" size="small" @click="clearUserLogs">
+                            <el-icon><Delete /></el-icon>
+                            清空
+                        </el-button>
+                    </div>
+                </div>
+
+                <!-- 控制台内容 -->
+                <div v-show="activeTab === 'console'" class="console-content" ref="consoleContainer">
+                    <div v-for="(log, index) in consoleLogs" :key="index" class="console-line" :class="getLogClass(log.type)">
+                        <span style="opacity: 0.7;">[{{ log.time }}]</span> {{ log.message }}
+                    </div>
+                    <div v-if="consoleLogs.length === 0" class="console-line log-info">
+                        微信自动化工具！请选择用户并配置验证消息后开始批量添加好友...
+                    </div>
+                </div>
+
+                <!-- 操作日志表格 -->
+                <div v-show="activeTab === 'logs'" style="height: 350px; overflow-y: auto;">
+                    <el-table
+                        :data="userLogs"
+                        style="width: 100%;"
+                        size="small"
+                        stripe
+                        :header-cell-style="{ background: '#f8fafc', color: '#374151', fontWeight: '500' }"
+                    >
+                        <el-table-column prop="wechat_id" label="微信号" width="150" show-overflow-tooltip />
+                        <el-table-column prop="verify_msg" label="验证消息" width="200" show-overflow-tooltip />
+                        <el-table-column prop="add_time" label="添加时间" width="150">
+                            <template #default="scope">
+                                {{ formatTime(scope.row.add_time) }}
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="status" label="状态" width="100" align="center">
+                            <template #default="scope">
+                                <el-tag :type="scope.row.status === 1 ? 'success' : 'danger'" size="small">
+                                    {{ scope.row.status === 1 ? '成功' : '失败' }}
+                                </el-tag>
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="img_path" label="截图" width="100" align="center">
+                            <template #default="scope">
+                                <el-button v-if="scope.row.img_path" size="small" type="primary" link @click="viewScreenshot(scope.row.img_path)">
+                                    查看
+                                </el-button>
+                                <span v-else style="color: #9ca3af;">无</span>
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="error_msg" label="错误信息" show-overflow-tooltip>
+                            <template #default="scope">
+                                <span v-if="scope.row.error_msg" style="color: #ef4444;">{{ scope.row.error_msg }}</span>
+                                <span v-else style="color: #9ca3af;">-</span>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+
+                    <div v-if="userLogs.length === 0" style="text-align: center; padding: 40px; color: #6b7280;">
+                        <el-icon size="48" style="color: #d1d5db; margin-bottom: 12px;"><Document /></el-icon>
+                        <p>暂无操作记录</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 用户选择弹窗 -->
+            <el-dialog
+                v-model="showUserDialog"
+                title="选择用户"
+                width="80%"
+                :before-close="handleUserDialogClose"
+            >
+                <div style="margin-bottom: 16px;">
+                    <el-button size="small" @click="selectAllUsersInDialog">全选</el-button>
+                    <el-button size="small" @click="clearUserSelectionInDialog">清空</el-button>
+                    <el-button size="small" @click="loadUsers" :loading="loadingUsers">
+                        <el-icon><Refresh /></el-icon>
+                        刷新
+                    </el-button>
+                </div>
+
+                <!-- 搜索和筛选区域 -->
+                <div style="margin-bottom: 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                    <el-input
+                        v-model="userSearchText"
+                        placeholder="搜索微信号、签名..."
+                        size="small"
+                        style="width: 200px;"
+                        clearable
+                        @input="filterUsers"
+                    >
+                        <template #prefix>
+                            <el-icon><Search /></el-icon>
+                        </template>
+                    </el-input>
+
+                    <el-select
+                        v-model="followerFilter"
+                        placeholder="粉丝数筛选"
+                        size="small"
+                        style="width: 120px;"
+                        clearable
+                        @change="filterUsers"
+                    >
+                        <el-option label="全部" value="" />
+                        <el-option label="1000+" value="1000+" />
+                        <el-option label="5000+" value="5000+" />
+                        <el-option label="10000+" value="10000+" />
+                    </el-select>
+
+                    <el-tag type="info" size="small">
+                        显示 {{ filteredUsers.length }} / {{ users.length }} 条
+                    </el-tag>
+                </div>
+
+                <el-table
+                    :data="filteredUsers"
+                    style="width: 100%;"
+                    @selection-change="handleSelectionChange"
+                    size="default"
+                    stripe
+                    height="400"
+                    :header-cell-style="{ background: '#f8fafc', color: '#374151', fontWeight: '600' }"
+                    ref="userTable"
+                >
+                    <el-table-column type="selection" width="50" />
+                    <el-table-column prop="unique_id" label="微信号" width="150" show-overflow-tooltip sortable>
+                        <template #default="scope">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div class="user-avatar-small">
+                                    <el-icon><User /></el-icon>
+                                </div>
+                                <span style="font-weight: 500;">{{ scope.row.unique_id }}</span>
+                            </div>
+                        </template>
+                    </el-table-column>
+                    <el-table-column prop="intro" label="个性签名" show-overflow-tooltip>
+                        <template #default="scope">
+                            <span style="color: #64748b;">{{ scope.row.intro || '暂无签名' }}</span>
+                        </template>
+                    </el-table-column>
+                    <el-table-column prop="follower_count" label="粉丝数" width="100" align="center" sortable>
+                        <template #default="scope">
+                            <el-tag size="small" type="info">{{ formatFollowerCount(scope.row.follower_count) }}</el-tag>
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="状态" width="80" align="center">
+                        <template #default="scope">
+                            <el-tag
+                                size="small"
+                                :type="isUserAdded(scope.row.unique_id) ? 'success' : 'info'"
+                            >
+                                {{ isUserAdded(scope.row.unique_id) ? '已添加' : '未添加' }}
+                            </el-tag>
+                        </template>
+                    </el-table-column>
+                </el-table>
+
+                <template #footer>
+                    <span class="dialog-footer">
+                        <el-button @click="showUserDialog = false">取消</el-button>
+                        <el-button type="primary" @click="confirmUserSelection">
+                            确定 (已选 {{ selectedUsers.length }} 人)
+                        </el-button>
+                    </span>
+                </template>
+            </el-dialog>
+
+            <!-- 常用语选择弹窗 -->
+            <el-dialog
+                v-model="showPhraseDialog"
+                title="选择验证消息"
+                width="60%"
+                :before-close="handlePhraseDialogClose"
+            >
+                <div style="margin-bottom: 16px;">
+                    <el-button size="small" @click="selectAllPhrases">全选</el-button>
+                    <el-button size="small" @click="clearPhraseSelection">清空</el-button>
+                    <el-button size="small" @click="loadPhrases" :loading="loadingPhrases">
+                        <el-icon><Refresh /></el-icon>
+                        刷新
+                    </el-button>
+                </div>
+
+                <div class="phrase-list" style="max-height: 400px; overflow-y: auto;">
+                    <div
+                        v-for="phrase in activePhrases"
+                        :key="phrase.id"
+                        class="phrase-item"
+                        :class="{ 'selected': isPhraseSelected(phrase) }"
+                    >
+                        <el-checkbox
+                            :model-value="isPhraseSelected(phrase)"
+                            @change="() => togglePhraseSelection(phrase)"
+                        />
+                        <div class="phrase-content" @click="togglePhraseSelection(phrase)">{{ phrase.content }}</div>
+                    </div>
+                </div>
+
+                <template #footer>
+                    <span class="dialog-footer">
+                        <el-button @click="showPhraseDialog = false">取消</el-button>
+                        <el-button type="primary" @click="confirmPhraseSelection">
+                            确定 (已选 {{ selectedPhrases.length }} 条)
+                        </el-button>
+                    </span>
+                </template>
+            </el-dialog>
+
+
+
+
+
+        </div>
+    </div>
+
+    <!-- Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Element Plus -->
+    <script src="https://unpkg.com/element-plus/dist/index.full.js"></script>
+    <!-- Element Plus Icons -->
+    <script src="https://unpkg.com/@element-plus/icons-vue/dist/index.iife.js"></script>
+
+    <script>
+        const { createApp, ref, reactive, computed, nextTick, onMounted } = Vue;
+        const { ElMessage, ElMessageBox } = ElementPlus;
+
+        const app = createApp({
+            setup() {
+                // 数据管理
+                const users = ref([]);
+                const selectedUsers = ref([]);
+                const phrases = ref([]);
+                const activePhrases = computed(() => phrases.value.filter(p => p.status === 1));
+
+                // 筛选相关
+                const userSearchText = ref('');
+                const followerFilter = ref('');
+                const filteredUsers = ref([]);
+                const addedUserIds = ref(new Set()); // 已添加的用户ID集合
+
+                // 表单数据
+                const selectedPhrase = ref('');
+                const customMessage = ref('');
+
+                // 状态管理
+                const isProcessing = ref(false);
+                const shouldStop = ref(false);
+                let currentController = null; // 用于中断请求
+                const statusChecking = ref(false);
+                const loadingUsers = ref(false);
+                const loadingPhrases = ref(false);
+                const consoleLogs = ref([]);
+                const consoleContainer = ref(null);
+                const showUserDialog = ref(false);
+                const showPhraseDialog = ref(false);
+                const selectedPhrases = ref([]);
+                const userLogs = ref([]);
+                const loadingLogs = ref(false);
+                const activeTab = ref('console'); // 'console' 或 'logs'
+                const userTable = ref(null); // 用户表格ref
+
+                // 微信状态
+                const wechatStatus = ref({
+                    connected: false,
+                    text: '未连接',
+                    class: 'status-error'
+                });
+
+                // 获取pywebview API - 
+                const getPywebviewApi = () => {
+                    if (window.pywebview && window.pywebview.api) {
+                        return window.pywebview.api;
+                    } else if (window.parent && window.parent.pywebview && window.parent.pywebview.api) {
+                        return window.parent.pywebview.api;
+                    } else if (window.top && window.top.pywebview && window.top.pywebview.api) {
+                        return window.top.pywebview.api;
+                    }
+                    return null;
+                };
+
+                // 添加控制台日志
+                const addLog = (message, type = 'info') => {
+                    const time = new Date().toLocaleTimeString();
+                    consoleLogs.value.push({
+                        time,
+                        message,
+                        type
+                    });
+
+                    nextTick(() => {
+                        scrollToBottom();
+                    });
+                };
+
+                // 滚动到底部
+                const scrollToBottom = () => {
+                    if (consoleContainer.value) {
+                        consoleContainer.value.scrollTop = consoleContainer.value.scrollHeight;
+                    }
+                };
+
+                // 清空控制台
+                const clearConsole = () => {
+                    consoleLogs.value = [];
+                    addLog('控制台已清空', 'info');
+                };
+
+                // 获取日志样式类
+                const getLogClass = (type) => {
+                    const classMap = {
+                        'info': 'log-info',
+                        'warning': 'log-warning',
+                        'error': 'log-error',
+                        'success': 'log-success'
+                    };
+                    return classMap[type] || 'log-info';
+                };
+
+                // 检查微信状态
+                const checkWechatStatus = async () => {
+                    statusChecking.value = true;
+                    addLog('正在检查微信连接状态...', 'info');
+
+                    try {
+                        let api = getPywebviewApi();
+
+                        // 如果API不可用，等待并重试几次
+                        if (!api) {
+                            addLog('等待API连接...', 'info');
+                            for (let i = 0; i < 5; i++) {
+                                await new Promise(resolve => setTimeout(resolve, 500));
+                                api = getPywebviewApi();
+                                if (api) break;
+                                addLog(`重试连接API... (${i + 1}/5)`, 'info');
+                            }
+
+                            if (!api) {
+                                throw new Error('无法连接到后端API，请确保应用正常运行');
+                            }
+                        }
+
+                        // 调用后端检查微信状态
+                        const result = await api.check_wechat_status();
+
+                        if (result && result.success) {
+                            wechatStatus.value = {
+                                connected: true,
+                                text: '已连接',
+                                class: 'status-ready'
+                            };
+                            addLog('✅ 微信连接正常', 'success');
+                        } else {
+                            wechatStatus.value = {
+                                connected: false,
+                                text: '连接失败',
+                                class: 'status-error'
+                            };
+                            addLog('❌ 微信连接失败：' + (result?.message || '未知错误'), 'error');
+                        }
+                    } catch (error) {
+                        console.error('检查微信状态失败:', error);
+                        wechatStatus.value = {
+                            connected: false,
+                            text: '检查失败',
+                            class: 'status-error'
+                        };
+                        addLog('❌ 检查微信状态失败：' + error.message, 'error');
+                    } finally {
+                        statusChecking.value = false;
+                    }
+                };
+
+                // 等待API就绪的通用方法
+                const waitForApi = async () => {
+                    let api = getPywebviewApi();
+                    if (!api) {
+                        for (let i = 0; i < 5; i++) {
+                            await new Promise(resolve => setTimeout(resolve, 300));
+                            api = getPywebviewApi();
+                            if (api) break;
+                        }
+                        if (!api) {
+                            throw new Error('无法连接到后端API，请确保应用正常运行');
+                        }
+                    }
+                    return api;
+                };
+
+                // 筛选用户
+                const filterUsers = () => {
+                    let filtered = [...users.value];
+
+                    // 文本搜索
+                    if (userSearchText.value) {
+                        const searchText = userSearchText.value.toLowerCase();
+                        filtered = filtered.filter(user =>
+                            (user.unique_id && user.unique_id.toLowerCase().includes(searchText)) ||
+                            (user.intro && user.intro.toLowerCase().includes(searchText))
+                        );
+                    }
+
+                    // 粉丝数筛选
+                    if (followerFilter.value) {
+                        const threshold = parseInt(followerFilter.value.replace('+', ''));
+                        filtered = filtered.filter(user =>
+                            user.follower_count && user.follower_count >= threshold
+                        );
+                    }
+
+                    filteredUsers.value = filtered;
+                };
+
+                // 格式化粉丝数显示
+                const formatFollowerCount = (count) => {
+                    if (!count) return '0';
+                    if (count >= 10000) return (count / 10000).toFixed(1) + 'w';
+                    if (count >= 1000) return (count / 1000).toFixed(1) + 'k';
+                    return count.toString();
+                };
+
+                // 检查用户是否已添加
+                const isUserAdded = (wechatId) => {
+                    return addedUserIds.value.has(wechatId);
+                };
+
+                // 加载用户数据
+                const loadUsers = async () => {
+                    loadingUsers.value = true;
+                    addLog('正在加载用户数据...', 'info');
+                    try {
+                        const api = await waitForApi();
+
+                        const result = await api.get_users();
+                        if (result && result.success) {
+                            users.value = result.data || [];
+                            filterUsers(); // 应用筛选
+                            addLog(`✅ 加载了 ${users.value.length} 条用户数据`, 'success');
+                        } else {
+                            throw new Error(result?.message || '获取用户数据失败');
+                        }
+                    } catch (error) {
+                        console.error('加载用户数据失败:', error);
+                        addLog('❌ 加载用户数据失败：' + error.message, 'error');
+                        ElMessage.error('加载用户数据失败：' + error.message);
+                    } finally {
+                        loadingUsers.value = false;
+                    }
+                };
+
+                // 加载常用语
+                const loadPhrases = async () => {
+                    try {
+                        const api = await waitForApi();
+
+                        const result = await api.get_wechat_phrases();
+                        if (result && result.success) {
+                            phrases.value = result.data || [];
+                        }
+                    } catch (error) {
+                        console.error('加载常用语失败:', error);
+                    }
+                };
+
+                // 处理表格选择变化
+                const handleSelectionChange = (selection) => {
+                    selectedUsers.value = selection;
+                };
+
+                // 弹窗中的用户选择方法
+                const selectAllUsersInDialog = () => {
+                    selectedUsers.value = [...filteredUsers.value];
+                    nextTick(() => {
+                        // 通过ref操作表格全选
+                        if (userTable.value) {
+                            userTable.value.toggleAllSelection();
+                        }
+                    });
+                };
+
+                const clearUserSelectionInDialog = () => {
+                    selectedUsers.value = [];
+                    nextTick(() => {
+                        if (userTable.value) {
+                            userTable.value.clearSelection();
+                        }
+                    });
+                };
+
+                const confirmUserSelection = () => {
+                    showUserDialog.value = false;
+                    addLog(`已选择 ${selectedUsers.value.length} 个用户`, 'success');
+                };
+
+                const handleUserDialogClose = () => {
+                    showUserDialog.value = false;
+                };
+
+                // 常用语选择相关方法
+                const isPhraseSelected = (phrase) => {
+                    return selectedPhrases.value.some(p => p.id === phrase.id);
+                };
+
+                const togglePhraseSelection = (phrase) => {
+                    const index = selectedPhrases.value.findIndex(p => p.id === phrase.id);
+                    if (index > -1) {
+                        selectedPhrases.value.splice(index, 1);
+                    } else {
+                        selectedPhrases.value.push(phrase);
+                    }
+                };
+
+                const selectAllPhrases = () => {
+                    selectedPhrases.value = [...activePhrases.value];
+                };
+
+                const clearPhraseSelection = () => {
+                    selectedPhrases.value = [];
+                };
+
+                const confirmPhraseSelection = () => {
+                    showPhraseDialog.value = false;
+                    addLog(`已选择 ${selectedPhrases.value.length} 条常用语`, 'success');
+                };
+
+                const handlePhraseDialogClose = () => {
+                    showPhraseDialog.value = false;
+                };
+
+                // 全选用户
+                const selectAllUsers = () => {
+                    selectedUsers.value = [...users.value];
+                };
+
+                // 清空选择
+                const clearSelection = () => {
+                    selectedUsers.value = [];
+                };
+
+                // 清空所有选择
+                const clearAllSelections = () => {
+                    selectedUsers.value = [];
+                    selectedPhrases.value = [];
+                    customMessage.value = '';
+                    addLog('已清空所有选择', 'info');
+                };
+
+                // 终止操作
+                const stopProcessing = async () => {
+                    shouldStop.value = true;
+                    addLog('⚠️ 用户请求终止操作...', 'warning');
+                    ElMessage.warning('正在终止操作，请稍候...');
+
+                    // 中断当前的HTTP请求
+                    if (currentController) {
+                        currentController.abort();
+                        addLog('🛑 已中断当前请求', 'warning');
+                    }
+
+                    try {
+                        const api = await waitForApi();
+                        await api.stop_processing();
+                        addLog('✅ 终止请求已发送到后端', 'info');
+                    } catch (error) {
+                        addLog('❌ 发送终止请求失败: ' + error.message, 'error');
+                    }
+
+                    // 强制结束处理状态
+                    setTimeout(() => {
+                        if (isProcessing.value) {
+                            isProcessing.value = false;
+                            shouldStop.value = false;
+                            addLog('🔄 已强制结束处理状态', 'info');
+                            ElMessage.success('操作已终止');
+                        }
+                    }, 2000);
+                };
+
+                // 常用语选择变化
+                const onPhraseChange = (value) => {
+                    customMessage.value = value;
+                };
+
+                // 添加单个好友
+                const addSingleFriend = async (user) => {
+                    const verifyMsg = getRandomMessage();
+                    if (!verifyMsg) {
+                        ElMessage.warning('请选择验证消息或输入自定义消息');
+                        return;
+                    }
+
+                    isProcessing.value = true;
+                    shouldStop.value = false;
+                    addLog(`开始添加好友：${user.unique_id}`, 'info');
+
+                    try {
+                        const api = await waitForApi();
+
+                        const result = await api.add_wechat_friend({
+                            wechat_id: user.unique_id,
+                            verify_msg: verifyMsg,
+                            remark_name: user.signature || user.unique_id
+                        });
+
+                        if (result && result.success) {
+                            addLog(`✅ 成功添加好友：${user.unique_id}`, 'success');
+                            if (result.screenshot_path) {
+                                addLog(`📸 截图已保存：${result.screenshot_path}`, 'info');
+                            }
+                            ElMessage.success('好友申请发送成功！');
+                        } else if (result && result.user_not_found) {
+                            addLog(`⚠️ 无法找到用户：${user.unique_id}`, 'warning');
+                            ElMessage.warning('无法找到该用户，请检查微信号是否正确');
+                        } else {
+                            const errorMsg = result?.message || '添加好友失败';
+                            addLog(`❌ 添加失败：${user.unique_id} - ${errorMsg}`, 'error');
+                            ElMessage.error(errorMsg);
+                        }
+
+                        // 刷新操作日志
+                        loadUserLogs();
+
+                    } catch (error) {
+                        console.error('添加好友失败:', error);
+                        const errorMsg = '添加好友失败：' + error.message;
+                        addLog(`❌ ${errorMsg}`, 'error');
+                        ElMessage.error(errorMsg);
+                    } finally {
+                        isProcessing.value = false;
+                        shouldStop.value = false;
+                    }
+                };
+
+                // 获取随机验证消息
+                const getRandomMessage = () => {
+                    if (customMessage.value) {
+                        return customMessage.value;
+                    }
+
+                    if (selectedPhrases.value.length > 0) {
+                        const randomIndex = Math.floor(Math.random() * selectedPhrases.value.length);
+                        return selectedPhrases.value[randomIndex].content;
+                    }
+
+                    return null;
+                };
+
+                // 批量添加好友
+                const batchAddFriends = async () => {
+                    if (selectedUsers.value.length === 0) {
+                        ElMessage.warning('请先选择要添加的用户');
+                        return;
+                    }
+
+                    if (selectedPhrases.value.length === 0 && !customMessage.value) {
+                        ElMessage.warning('请选择验证消息或输入自定义消息');
+                        return;
+                    }
+
+                    // 重置终止标志
+                    shouldStop.value = false;
+
+                    try {
+                        await ElMessageBox.confirm(
+                            `确定要批量添加 ${selectedUsers.value.length} 个好友吗？`,
+                            '确认批量添加',
+                            {
+                                confirmButtonText: '确定添加',
+                                cancelButtonText: '取消',
+                                type: 'info',
+                            }
+                        );
+                    } catch {
+                        return;
+                    }
+
+                    // 创建新的AbortController
+                    currentController = new AbortController();
+
+                    isProcessing.value = true;
+                    addLog(`开始批量添加 ${selectedUsers.value.length} 个好友...`, 'info');
+
+                    let successCount = 0;
+                    let failCount = 0;
+                    let skipCount = 0;
+
+                    try {
+                        
+                        const api = await waitForApi();
+
+                        for (let i = 0; i < selectedUsers.value.length; i++) {
+                            // 检查是否需要终止
+                            if (shouldStop.value) {
+                                addLog('🛑 操作已被用户终止', 'warning');
+                                break;
+                            }
+
+                            const user = selectedUsers.value[i];
+                            const message = getRandomMessage();
+
+                            addLog(`[${i + 1}/${selectedUsers.value.length}] 正在添加：${user.unique_id}`, 'info');
+                            addLog(`使用验证消息: ${message}`, 'info');
+
+                            try {
+                                // 检查是否被中断
+                                if (currentController.signal.aborted) {
+                                    addLog('🛑 请求已被中断', 'warning');
+                                    break;
+                                }
+                                // 请求python
+                                const result = await api.add_wechat_friend({
+                                    wechat_id: user.unique_id,
+                                    verify_msg: message,
+                                    remark_name: user.signature || user.unique_id
+                                });
+
+                                if (result && result.success) {
+                                    successCount++;
+                                    addLog(`✅ [${i + 1}/${selectedUsers.value.length}] 成功：${user.unique_id}`, 'success');
+                                } else if (result && result.user_not_found) {
+                                    // 处理用户不存在的情况
+                                    skipCount++;
+                                    addLog(`⚠️ [${i + 1}/${selectedUsers.value.length}] 无法找到用户，跳过：${user.unique_id}`, 'warning');
+                                } else if (result && result.message) {
+                                    // 检查其他错误情况
+                                    if (result.message.includes('已经是好友') ||
+                                        result.message.includes('好友关系已存在')) {
+                                        skipCount++;
+                                        addLog(`⚠️ [${i + 1}/${selectedUsers.value.length}] 已经是好友，跳过：${user.unique_id}`, 'warning');
+                                    } else {
+                                        failCount++;
+                                        addLog(`❌ [${i + 1}/${selectedUsers.value.length}] 失败：${user.unique_id} - ${result.message}`, 'error');
+                                    }
+                                } else {
+                                    failCount++;
+                                    addLog(`❌ [${i + 1}/${selectedUsers.value.length}] 失败：${user.unique_id} - 未知错误`, 'error');
+                                }
+
+                                // 检查是否需要终止（在延迟前再次检查）
+                                if (shouldStop.value) {
+                                    addLog('🛑 操作已被用户终止', 'warning');
+                                    break;
+                                }
+
+                                // 添加延迟避免频率过快（注意：API内部已经有10秒延迟）
+                                if (i < selectedUsers.value.length - 1) {
+                                    addLog('等待 2 秒后继续...', 'info');
+                                    await new Promise(resolve => setTimeout(resolve, 2000));
+                                }
+
+                            } catch (error) {
+                                failCount++;
+                                addLog(`❌ [${i + 1}/${selectedUsers.value.length}] 异常：${user.unique_id} - ${error.message}`, 'error');
+
+                                // 检查是否需要终止
+                                if (shouldStop.value) {
+                                    addLog('🛑 操作已被用户终止', 'warning');
+                                    break;
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        addLog(`批量添加失败: ${error.message}`, 'error');
+                        ElMessage.error('批量添加失败: ' + error.message);
+                    }
+
+                    isProcessing.value = false;
+                    shouldStop.value = false;
+
+                    if (shouldStop.value) {
+                        addLog(`🛑 操作已终止！成功：${successCount}，失败：${failCount}，跳过：${skipCount}`, 'warning');
+                        ElMessage.warning(`操作已终止！成功：${successCount}，失败：${failCount}，跳过：${skipCount}`);
+                    } else {
+                        addLog(`🎉 批量添加完成！成功：${successCount}，失败：${failCount}，跳过：${skipCount}`, 'success');
+                        ElMessage.success(`批量添加完成！成功：${successCount}，失败：${failCount}，跳过：${skipCount}`);
+                    }
+
+                    // 刷新操作日志
+                    loadUserLogs();
+
+                    // 清空选择
+                    selectedUsers.value = [];
+                };
+
+                // 加载用户日志
+                const loadUserLogs = async () => {
+                    loadingLogs.value = true;
+                    try {
+                        const api = await waitForApi();
+                        const result = await api.get_user_logs();
+                        if (result && result.success) {
+                            userLogs.value = result.data || [];
+                            // 更新已添加用户集合
+                            const addedIds = new Set();
+                            userLogs.value.forEach(log => {
+                                if (log.status === 1 && log.wechat_id) {
+                                    addedIds.add(log.wechat_id);
+                                }
+                            });
+                            addedUserIds.value = addedIds;
+                            addLog(`✅ 加载了 ${userLogs.value.length} 条操作日志`, 'success');
+                        }
+                    } catch (error) {
+                        console.error('加载用户日志失败:', error);
+                        addLog('❌ 加载用户日志失败：' + error.message, 'error');
+                    } finally {
+                        loadingLogs.value = false;
+                    }
+                };
+
+                // 清空用户日志
+                const clearUserLogs = async () => {
+                    try {
+                        await ElMessageBox.confirm('确定要清空所有操作日志吗？', '确认清空', {
+                            confirmButtonText: '确定',
+                            cancelButtonText: '取消',
+                            type: 'warning',
+                        });
+
+                        const api = await waitForApi();
+                        const result = await api.clear_user_logs();
+                        if (result && result.success) {
+                            userLogs.value = [];
+                            addLog('✅ 已清空所有操作日志', 'success');
+                            ElMessage.success('操作日志已清空');
+                        }
+                    } catch (error) {
+                        if (error !== 'cancel') {
+                            console.error('清空用户日志失败:', error);
+                            addLog('❌ 清空用户日志失败：' + error.message, 'error');
+                        }
+                    }
+                };
+
+                // 格式化时间
+                const formatTime = (timeStr) => {
+                    if (!timeStr) return '-';
+                    const date = new Date(timeStr);
+                    return date.toLocaleString('zh-CN');
+                };
+
+                // 查看截图
+                const viewScreenshot = (imgPath) => {
+                    if (imgPath) {
+                        // 这里可以实现截图查看功能
+                        ElMessage.info('截图查看功能待实现');
+                    }
+                };
+
+                // 组件挂载时初始化
+                onMounted(() => {
+                    addLog('微信自动化工具已启动', 'success');
+                    addLog('正在初始化数据...', 'info');
+
+                    // 延迟加载确保API就绪
+                    setTimeout(() => {
+                        loadUsers();
+                        loadPhrases();
+                        loadUserLogs();
+                        checkWechatStatus();
+                    }, 1000);
+
+                    // 初始化筛选数据
+                    filteredUsers.value = [...users.value];
+                });
+
+                return {
+                    // 数据
+                    users,
+                    selectedUsers,
+                    phrases,
+                    activePhrases,
+                    selectedPhrases,
+                    filteredUsers,
+                    userSearchText,
+                    followerFilter,
+                    addedUserIds,
+                    userLogs,
+
+                    // 表单数据
+                    selectedPhrase,
+                    customMessage,
+
+                    // 状态
+                    isProcessing,
+                    shouldStop,
+                    statusChecking,
+                    loadingUsers,
+                    loadingPhrases,
+                    loadingLogs,
+                    wechatStatus,
+                    showUserDialog,
+                    showPhraseDialog,
+                    activeTab,
+
+                    // 控制台
+                    consoleLogs,
+                    consoleContainer,
+
+                    // 方法
+                    loadUsers,
+                    loadPhrases,
+                    loadUserLogs,
+                    clearUserLogs,
+                    formatTime,
+                    viewScreenshot,
+                    handleSelectionChange,
+                    selectAllUsersInDialog,
+                    clearUserSelectionInDialog,
+                    confirmUserSelection,
+                    handleUserDialogClose,
+                    isPhraseSelected,
+                    togglePhraseSelection,
+                    selectAllPhrases,
+                    clearPhraseSelection,
+                    confirmPhraseSelection,
+                    handlePhraseDialogClose,
+                    selectAllUsers,
+                    clearSelection,
+                    clearAllSelections,
+                    stopProcessing,
+                    onPhraseChange,
+                    addSingleFriend,
+                    batchAddFriends,
+                    checkWechatStatus,
+                    clearConsole,
+                    scrollToBottom,
+                    getLogClass,
+                    // 筛选相关
+                    filterUsers,
+                    formatFollowerCount,
+                    isUserAdded,
+                    // refs
+                    userTable
+                };
+            }
+        });
+
+        // 注册所有图标
+        Object.keys(ElementPlusIconsVue).forEach(key => {
+            app.component(key, ElementPlusIconsVue[key]);
+        });
+
+        app.use(ElementPlus).mount('#app');
+    </script>
+</body>
+</html>

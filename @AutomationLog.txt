@@ -1,0 +1,84 @@
+2025-08-24 03:34:43.829 wechat_automation.py[121] add_wechat_contact -> Find Control Timeout(10s): {ControlType: EditControl}
+2025-08-24 03:35:19.508 wechat_automation.py[121] add_wechat_contact -> Find Control Timeout(10s): {ControlType: EditControl}
+2025-08-24 03:44:28.245 listChat.py[12] <module> -> Find Control Timeout(10s): {Name: 'Chrome_WidgetWin_0', ClassName: 'Chrome_WidgetWin_0', ControlType: WindowControl}
+2025-08-24 03:44:51.063 listChat.py[12] <module> -> Find Control Timeout(10s): {Name: 'Chrome_WidgetWin_0', ClassName: 'Chrome_WidgetWin_0', ControlType: WindowControl}
+2025-08-24 03:45:04.204 listChat.py[12] <module> -> Find Control Timeout(10s): {Name: '微信', ClassName: 'Chrome_WidgetWin_0', ControlType: WindowControl}
+2025-08-24 14:30:35.919 wxChromeFollow.py[85] <module> -> Find Control Timeout(10s): {Name: '微信', ClassName: 'Chrome_WidgetWin_0', ControlType: PaneControl}
+2025-08-24 14:50:48.125 wxChromeFollow.py[101] <module> -> Find Control Timeout(10s): {Name: '微信团队', ControlType: WindowControl}
+2025-08-24 14:51:19.606 wxChromeFollow.py[101] <module> -> Find Control Timeout(10s): {Name: '又是一年冬', ControlType: WindowControl}
+2025-08-24 14:58:03.375 wxChromeFollow.py[93] <module> -> Find Control Timeout(10s): {ClassName: 'Chrome_OmniboxView', ControlType: TabItemControl}
+2025-08-24 14:58:21.193 wxChromeFollow.py[93] <module> -> Find Control Timeout(10s): {ControlType: TabItemControl}
+2025-08-25 01:13:44.078 wxChromeFollow.py[120] findVideoAccountAndSearch -> Find Control Timeout(10s): {Name: '微信', ClassName: 'Chrome_WidgetWin_1', ControlType: PaneControl}
+2025-08-25 12:20:21.714 wxChromeFollow.py[120] findVideoAccountAndSearch -> Find Control Timeout(10s): {Name: '微信', ClassName: 'Chrome_WidgetWin_1', ControlType: PaneControl}
+2025-08-25 12:21:55.351 wxChromeFollow.py[120] findVideoAccountAndSearch -> Find Control Timeout(10s): {Name: '微信', ClassName: 'Chrome_WidgetWin_1', ControlType: PaneControl}
+2025-08-25 12:22:31.631 wxChromeFollow.py[120] findVideoAccountAndSearch -> Find Control Timeout(10s): {Name: '微信', ClassName: 'Chrome_WidgetWin_1', ControlType: PaneControl}
+2025-08-25 12:28:13.773 wxChromeFollow.py[120] findVideoAccountAndSearch -> Find Control Timeout(10s): {Name: '微信', ClassName: 'Chrome_WidgetWin_1', ControlType: PaneControl}
+2025-08-25 12:31:59.268 wxChromeFollow.py[120] findVideoAccountAndSearch -> Find Control Timeout(10s): {Name: '微信', ClassName: 'Chrome_WidgetWin_1', ControlType: PaneControl}
+2025-08-25 12:32:17.224 wxChromeFollow.py[120] findVideoAccountAndSearch -> Find Control Timeout(10s): {Name: '微信', ClassName: 'Chrome_WidgetWin_1', ControlType: PaneControl}
+2025-08-25 12:35:32.513 wxChromeFollow.py[120] findVideoAccountAndSearch -> Find Control Timeout(10s): {Name: '微信', ClassName: 'Chrome_WidgetWin_1', ControlType: PaneControl}
+2025-08-25 12:40:39.915 wxChromeFollow.py[120] findVideoAccountAndSearch -> Find Control Timeout(10s): {Name: '微信', ClassName: 'Chrome_WidgetWin_1', ControlType: PaneControl}
+2025-08-25 12:44:37.295 wxChromeFollow.py[120] findVideoAccountAndSearch -> Find Control Timeout(10s): {Name: '微信', ClassName: 'Chrome_WidgetWin_1', ControlType: PaneControl}
+2025-08-25 12:56:02.848 wxChromeFollow.py[120] findVideoAccountAndSearch -> Find Control Timeout(10s): {Name: '微信', ClassName: 'Chrome_WidgetWin_1', ControlType: PaneControl}
+2025-08-25 12:56:55.536 wxChromeFollow.py[120] findVideoAccountAndSearch -> Find Control Timeout(10s): {Name: '微信', ClassName: 'Chrome_WidgetWin_1', ControlType: PaneControl}
+2025-08-25 12:58:04.718 wxChromeFollow.py[120] findVideoAccountAndSearch -> Find Control Timeout(10s): {Name: '微信', ClassName: 'Chrome_WidgetWin_1', ControlType: PaneControl}
+2025-08-25 12:58:43.659 wxChromeFollow.py[120] findVideoAccountAndSearch -> Find Control Timeout(10s): {Name: '微信', ClassName: 'Chrome_WidgetWin_1', ControlType: PaneControl}
+2025-08-25 12:59:55.288 wxChromeFollow.py[120] findVideoAccountAndSearch -> Find Control Timeout(10s): {Name: '微信', ClassName: 'Chrome_WidgetWin_1', ControlType: PaneControl}
+2025-08-25 14:04:51.746 wxChromeFollow.py[76] switchRoom -> Find Control Timeout(10s): {Name: '星光漫游12_搜索', ControlType: TabItemControl}
+2025-08-25 14:05:55.316 wxChromeFollow.py[76] switchRoom -> Find Control Timeout(10s): {Name: '星光漫游12_搜索', ControlType: TabItemControl}
+2025-08-25 14:06:38.919 wxChromeFollow.py[76] switchRoom -> Find Control Timeout(10s): {Name: '星光漫游12_搜索', ControlType: TabItemControl}
+2025-08-25 14:21:43.589 wxChromeFollow.py[76] switchRoom -> Find Control Timeout(10s): {Name: '星光漫游12_搜索', ControlType: TabItemControl}
+2025-08-25 14:47:57.135 wxChromeFollow.py[140] listAllTabs -> Find Control Timeout(10s): {Name: '微信', ClassName: 'Chrome_WidgetWin_1', ControlType: PaneControl}
+2025-08-25 14:58:37.111 wxChromeFollow.py[77] switchRoom -> Find Control Timeout(10s): {Name: '星光漫游12的直播', ControlType: TabItemControl}
+2025-08-25 14:59:26.759 wxChromeFollow.py[77] switchRoom -> Find Control Timeout(10s): {Name: '星光漫游12的直播', ControlType: TabItemControl}
+2025-08-25 15:01:08.289 wxChromeFollow.py[77] switchRoom -> Find Control Timeout(10s): {Name: '星光漫游12的直播', ControlType: TabItemControl}
+2025-08-25 15:03:31.431 wxChromeFollow.py[77] switchRoom -> Find Control Timeout(10s): {Name: '星光漫游12的直播', ControlType: TabItemControl}
+2025-08-25 15:57:43.992 wxChromeFollow.py[140] findVideoAccountAndSearch -> Find Control Timeout(10s): {Name: '微信', ClassName: 'Chrome_WidgetWin_1', ControlType: PaneControl}
+2025-08-25 15:59:03.953 wxChromeFollow.py[140] findVideoAccountAndSearch -> Find Control Timeout(10s): {Name: '微信', ClassName: 'Chrome_WidgetWin_1', ControlType: PaneControl}
+2025-08-25 16:00:45.408 wxChromeFollow.py[140] findVideoAccountAndSearch -> Find Control Timeout(10s): {Name: '微信', ClassName: 'Chrome_WidgetWin_1', ControlType: PaneControl}
+2025-08-25 16:01:19.262 wxChromeFollow.py[140] findVideoAccountAndSearch -> Find Control Timeout(10s): {Name: '微信', ClassName: 'Chrome_WidgetWin_1', ControlType: PaneControl}
+2025-08-25 16:01:47.176 wxChromeFollow.py[140] findVideoAccountAndSearch -> Find Control Timeout(10s): {Name: '微信', ClassName: 'Chrome_WidgetWin_1', ControlType: PaneControl}
+2025-08-25 16:03:08.181 wxChromeFollow.py[86] switchRoom -> Find Control Timeout(10s): {Name: '星光漫游12的直播', ControlType: TabItemControl}
+2025-08-25 16:11:42.144 wxChromeFollow.py[150] findVideoAccountAndSearch -> Find Control Timeout(10s): {ControlType: TabItemControl}
+
+[WinError -2147221008] 尚未调用 CoInitialize。
+Can not load UIAutomationCore.dll.
+1, You may need to install Windows Update KB971513 if your OS is Windows XP, see https://github.com/yinkaisheng/WindowsUpdateKB971513ForIUIAutomation
+2, You need to use an UIAutomationInitializerInThread object if use uiautomation in a thread, see demos/uiautomation_in_thread.py
+
+[WinError -2147221008] 尚未调用 CoInitialize。
+Can not load UIAutomationCore.dll.
+1, You may need to install Windows Update KB971513 if your OS is Windows XP, see https://github.com/yinkaisheng/WindowsUpdateKB971513ForIUIAutomation
+2, You need to use an UIAutomationInitializerInThread object if use uiautomation in a thread, see demos/uiautomation_in_thread.py
+2025-08-31 21:14:05.058 follwRoom.py[318] switchRoom -> Find Control Timeout(10s): {Name: '测试直播间的直播', ControlType: TabItemControl}
+
+[WinError -2147221008] 尚未调用 CoInitialize。
+Can not load UIAutomationCore.dll.
+1, You may need to install Windows Update KB971513 if your OS is Windows XP, see https://github.com/yinkaisheng/WindowsUpdateKB971513ForIUIAutomation
+2, You need to use an UIAutomationInitializerInThread object if use uiautomation in a thread, see demos/uiautomation_in_thread.py
+
+[WinError -2147221008] 尚未调用 CoInitialize。
+Can not load UIAutomationCore.dll.
+1, You may need to install Windows Update KB971513 if your OS is Windows XP, see https://github.com/yinkaisheng/WindowsUpdateKB971513ForIUIAutomation
+2, You need to use an UIAutomationInitializerInThread object if use uiautomation in a thread, see demos/uiautomation_in_thread.py
+
+[WinError -2147221008] 尚未调用 CoInitialize。
+Can not load UIAutomationCore.dll.
+1, You may need to install Windows Update KB971513 if your OS is Windows XP, see https://github.com/yinkaisheng/WindowsUpdateKB971513ForIUIAutomation
+2, You need to use an UIAutomationInitializerInThread object if use uiautomation in a thread, see demos/uiautomation_in_thread.py
+2025-09-04 21:16:41.148 follwRoom.py[850] switchRoom -> Find Control Timeout(10s): {Name: '参半牙膏工厂店的直播', ControlType: TabItemControl}
+2025-09-04 21:17:10.648 follwRoom.py[850] switchRoom -> Find Control Timeout(10s): {Name: '参半牙膏工厂店的直播', ControlType: TabItemControl}
+2025-09-05 15:56:30.989 follwRoom.py[877] switchRoom -> Find Control Timeout(10s): {Name: '大杨起飞了2的直播', ControlType: TabItemControl}
+2025-09-08 19:10:29.581 follwRoom.py[2752] closeTabByTitle -> 2025-09-08 19:10:29.582 follwRoom.py[2752] closeTabByTitle -> Find Control Timeout(10s): {Find Control Timeout(10s): {Name: Name: '飞轮 - 搜一搜', '飞轮 - 搜一搜', ControlType: ControlType: TabItemControl}
+TabItemControl}
+2025-09-08 19:11:16.875 follwRoom.py[1076] initEnterRoom -> Can not move cursor. TextControl's BoundingRectangle is (0,0,0,0)[0x0]. SearchProperties: {Name: '直播中', ControlType: TextControl}
+2025-09-08 19:11:30.828 follwRoom.py[924] switchRoom -> Find Control Timeout(10s): {Name: '飞轮的直播', ControlType: TabItemControl}
+2025-09-08 19:12:09.249 follwRoom.py[1076] initEnterRoom -> Can not move cursor. TextControl's BoundingRectangle is (0,0,0,0)[0x0]. SearchProperties: {Name: '直播中', ControlType: TextControl}
+2025-09-08 19:12:23.220 follwRoom.py[924] switchRoom -> Find Control Timeout(10s): {Name: '飞轮的直播', ControlType: TabItemControl}
+2025-09-08 19:21:17.360 follwRoom.py[1076] initEnterRoom -> Can not move cursor. TextControl's BoundingRectangle is (0,0,0,0)[0x0]. SearchProperties: {Name: '直播中', ControlType: TextControl}
+2025-09-08 19:21:31.306 follwRoom.py[924] switchRoom -> Find Control Timeout(10s): {Name: '飞轮的直播', ControlType: TabItemControl}
+2025-09-08 19:33:21.057 follwRoom.py[1111] initEnterRoom -> Can not move cursor. TextControl's BoundingRectangle is (0,0,0,0)[0x0]. SearchProperties: {Name: '直播中', ControlType: TextControl}
+2025-09-08 19:33:34.684 follwRoom.py[924] switchRoom -> Find Control Timeout(10s): {Name: '飞轮的直播', ControlType: TabItemControl}
+2025-09-10 12:47:43.962 follwRoom.py[1127] initEnterRoom -> Can not move cursor. TextControl's BoundingRectangle is (0,0,0,0)[0x0]. SearchProperties: {Name: '直播中', ControlType: TextControl}
+2025-09-10 12:47:57.308 follwRoom.py[924] switchRoom -> Find Control Timeout(10s): {Name: '飞轮的直播', ControlType: TabItemControl}
+2025-09-10 12:48:37.816 follwRoom.py[1127] initEnterRoom -> Can not move cursor. TextControl's BoundingRectangle is (0,0,0,0)[0x0]. SearchProperties: {Name: '直播中', ControlType: TextControl}
+2025-09-10 12:48:51.733 follwRoom.py[924] switchRoom -> Find Control Timeout(10s): {Name: '飞轮的直播', ControlType: TabItemControl}

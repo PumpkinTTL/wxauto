@@ -1,0 +1,67 @@
+{
+    "system_config": {
+        "intervals": {
+            "bullet_screen_send": 500,
+            "bullet_screen_retry": 30,
+            "follow_task_retry": 60,
+            "image_recognition_retry": 60,
+            "live_room_check": 300,
+            "page_load_wait": 2,
+            "window_switch_wait": 1,
+            "operation_wait": 1,
+            "network_timeout": 30,
+            "tab_switch_wait": 1,
+            "element_wait": 0.5,
+            "chrome_load_wait": 3,
+            "wechat_operation_wait": 2,
+            "screenshot_wait": 1,
+            "element_click_wait": 0.5
+        },
+        "retry_config": {
+            "max_bullet_retry": 5,
+            "max_image_retry": 5,
+            "max_follow_retry": 10,
+            "enable_auto_retry": true,
+            "max_network_retry": 3,
+            "max_element_retry": 3
+        },
+        "features": {
+            "enable_screenshot": true,
+            "enable_notifications": false,
+            "enable_detailed_logs": true,
+            "enable_auto_scroll": true,
+            "enable_error_recovery": true,
+            "enable_performance_monitoring": false
+        },
+        "quality": {
+            "screenshot_quality": 80,
+            "image_match_confidence": 0.8,
+            "log_level": "info",
+            "max_log_file_size": 10,
+            "max_log_files": 5
+        },
+        "timeouts": {
+            "element_timeout": 10,
+            "page_timeout": 30,
+            "network_timeout": 60,
+            "task_timeout": 300,
+            "screenshot_timeout": 5
+        }
+    },
+    "ui_config": {
+        "theme": "default",
+        "auto_scroll": true,
+        "show_notifications": true,
+        "animation_enabled": true,
+        "refresh_interval": 5,
+        "max_display_logs": 1000
+    },
+    "wechat_config": {
+        "chrome_profile_path": "chrome_profile_tmall",
+        "window_title_pattern": "微信",
+        "max_retry_attempts": 3,
+        "element_detection_timeout": 5,
+        "scroll_speed": 3,
+        "click_delay": 0.5
+    }
+}

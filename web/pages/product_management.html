@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商品管理</title>
+    <!-- Element Plus CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <!-- Animate.css -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <style>
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background: #f8fafc;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        /* 页面容器 */
+        .page-container {
+            padding: 16px;
+            height: calc(100vh - 32px);
+            overflow-y: auto;
+        }
+
+        /* 卡片样式 */
+        .content-card {
+            background: white;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        /* 头部样式 */
+        .page-header {
+            padding: 16px 20px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .page-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin: 0 0 4px 0;
+            color: #1f2937;
+        }
+
+        .page-subtitle {
+            font-size: 13px;
+            margin: 0;
+            color: #6b7280;
+        }
+
+        /* 工具栏样式 */
+        .toolbar {
+            padding: 16px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .search-box {
+            flex: 1;
+            max-width: 280px;
+        }
+
+        /* 表格容器 */
+        .table-container {
+            padding: 0 20px 20px 20px;
+            min-height: 400px;
+            background: white;
+            border-radius: 8px;
+        }
+
+        /* 强制表格显示 */
+        .el-table {
+            display: table !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+
+        /* 商品封面图片样式 */
+        .product-cover {
+            width: 40px;
+            height: 40px;
+            object-fit: cover;
+            border: 1px solid #e5e7eb;
+        }
+
+        .no-cover {
+            width: 40px;
+            height: 40px;
+            background: #f3f4f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #9ca3af;
+            font-size: 10px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .image-container {
+            position: relative;
+            width: 60px;
+            height: 60px;
+        }
+
+        .loading-cover {
+            width: 60px;
+            height: 60px;
+            background: #f3f4f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #9ca3af;
+            font-size: 10px;
+            border: 1px solid #e5e7eb;
+        }
+
+        /* 价格样式 */
+        .price-text {
+            color: #ef4444;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        /* 动画效果 */
+        .animate-fade-in {
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 表单样式优化 */
+        .el-form-item__label {
+            font-weight: 500;
+        }
+
+
+
+        /* 简化样式，使用Element Plus默认样式 */
+
+        /* 状态标签样式 */
+        .status-tag {
+            padding: 4px 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        /* 操作按钮组 */
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* 简洁现代页面头部 */
+        .page-header {
+            background: #ffffff;
+            color: #1f2937;
+            border: 1px solid #e5e7eb;
+            margin-bottom: 24px;
+            padding: 20px 24px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .page-header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .page-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin: 0;
+            color: #111827;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .page-title i {
+            font-size: 24px;
+            color: #10b981;
+        }
+
+        .page-subtitle {
+            font-size: 14px;
+            color: #6b7280;
+            margin: 0;
+            font-weight: 400;
+        }
+
+        .page-header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* 功能标签 */
+        .feature-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            background: #f3f4f6;
+            color: #6b7280;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .feature-tag.active {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .feature-tag i {
+            font-size: 14px;
+        }
+
+        /* 状态图标 */
+        .status-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            background: #f9fafb;
+            color: #6b7280;
+            font-size: 16px;
+        }
+
+        .status-icon.success {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+
+        .status-icon.info {
+            background: #dbeafe;
+            color: #2563eb;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .page-container {
+                padding: 10px;
+            }
+
+            .toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .search-box {
+                max-width: none;
+            }
+
+            .page-title {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <div class="page-container animate-fade-in">
+            <!-- 页面头部 -->
+            <div class="content-card page-header">
+                <div class="page-header-left">
+                    <h1 class="page-title">
+                        <i class="el-icon-goods"></i>
+                        商品管理
+                    </h1>
+                    <p class="page-subtitle">管理商品信息，支持图像识别功能的商品数据维护</p>
+                </div>
+
+                <div class="page-header-right">
+                    <div class="feature-tag active">
+                        <i class="el-icon-shopping-cart-2"></i>
+                        商品库存
+                    </div>
+                    <div class="feature-tag">
+                        <i class="el-icon-picture"></i>
+                        封面管理
+                    </div>
+                    <div class="feature-tag">
+                        <i class="el-icon-price-tag"></i>
+                        价格设置
+                    </div>
+                    <div class="status-icon info">
+                        <i class="el-icon-data-line"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 主要内容 -->
+            <div class="content-card">
+                <!-- 工具栏 -->
+                <div class="toolbar">
+                    <div class="search-box">
+                        <el-input
+                            v-model="searchForm.name"
+                            placeholder="搜索商品名称..."
+                            clearable
+                            @keyup.enter="searchProducts"
+                            @clear="searchProducts"
+                        >
+                            <template #prefix>
+                                <el-icon><Search /></el-icon>
+                            </template>
+                        </el-input>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <el-button size="small" type="primary" @click="searchProducts" :loading="loading">
+                            <el-icon><Search /></el-icon>
+                            搜索
+                        </el-button>
+                        <el-button size="small" type="success" @click="showAddDialog">
+                            <el-icon><Plus /></el-icon>
+                            添加商品
+                        </el-button>
+                        <el-button size="small" @click="refreshData" :loading="loading">
+                            <el-icon><Refresh /></el-icon>
+                            刷新
+                        </el-button>
+                    </div>
+                </div>
+
+                <!-- 数据表格 -->
+                <div class="table-container">
+                    <el-table
+                        :data="productList"
+                        v-loading="loading"
+                        element-loading-text="加载中..."
+                        stripe
+                        style="width: 100%"
+                        :default-sort="{ prop: 'create_time', order: 'descending' }"
+                    >
+                        <el-table-column prop="id" label="ID" width="80" sortable></el-table-column>
+                        
+                        <el-table-column label="商品封面" width="100">
+                            <template #default="scope">
+                                <div v-if="scope.row.cover" class="image-container">
+                                    <img
+                                        v-if="scope.row.coverObjectUrl"
+                                        :src="scope.row.coverObjectUrl"
+                                        class="product-cover"
+                                        @error="handleImageError"
+                                    />
+                                    <div v-else class="loading-cover">
+                                        加载中...
+                                    </div>
+                                </div>
+                                <div v-else class="no-cover">
+                                    无封面
+                                </div>
+                            </template>
+                        </el-table-column>
+                        
+                        <el-table-column prop="name" label="商品名称" min-width="200" show-overflow-tooltip>
+                            <template #default="scope">
+                                <span style="font-weight: 500;">{{ scope.row.name }}</span>
+                            </template>
+                        </el-table-column>
+                        
+                        <el-table-column prop="price" label="价格" width="120" sortable>
+                            <template #default="scope">
+                                <span class="price-text">¥{{ parseFloat(scope.row.price || 0).toFixed(2) }}</span>
+                            </template>
+                        </el-table-column>
+                        
+                        <el-table-column prop="remark" label="备注" min-width="200" show-overflow-tooltip></el-table-column>
+                        
+                        <el-table-column prop="create_time" label="创建时间" width="180" sortable>
+                            <template #default="scope">
+                                {{ formatDateTime(scope.row.create_time) }}
+                            </template>
+                        </el-table-column>
+                        
+                        <el-table-column label="操作" width="160" fixed="right">
+                            <template #default="scope">
+                                <div class="action-buttons">
+                                    <el-button size="small" type="primary" @click="editProduct(scope.row)" :loading="editLoading" link>
+                                        <el-icon><Edit /></el-icon>
+                                        编辑
+                                    </el-button>
+                                    <el-button size="small" type="danger" @click="deleteProduct(scope.row)" link>
+                                        <el-icon><Delete /></el-icon>
+                                        删除
+                                    </el-button>
+                                </div>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+
+                    <!-- 分页 -->
+                    <div style="margin-top: 20px; text-align: center;">
+                        <el-pagination
+                            v-model:current-page="pagination.page"
+                            v-model:page-size="pagination.pageSize"
+                            :page-sizes="[10, 20, 50, 100]"
+                            :total="pagination.total"
+                            layout="total, sizes, prev, pager, next, jumper"
+                            @size-change="handleSizeChange"
+                            @current-change="handleCurrentChange"
+                        />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 添加/编辑商品对话框 -->
+        <el-dialog
+            v-model="dialogVisible"
+            :title="dialogTitle"
+            width="520px"
+            :close-on-click-modal="false"
+        >
+            <el-form
+                ref="productFormRef"
+                :model="productForm"
+                :rules="productRules"
+                label-width="80px"
+                label-position="left"
+            >
+                <el-form-item label="商品名称" prop="name">
+                    <el-input
+                        v-model="productForm.name"
+                        placeholder="请输入商品名称"
+                        maxlength="100"
+                        show-word-limit
+                    />
+                </el-form-item>
+                
+                <el-form-item label="商品封面" prop="cover">
+                    <el-input
+                        v-model="productForm.cover"
+                        placeholder="图片路径（自动生成）"
+                        readonly
+                        size="small"
+                    >
+                        <template #append>
+                            <el-button type="primary" @click="selectCoverImage" :loading="uploadingCover">
+                                选择图片
+                            </el-button>
+                        </template>
+                    </el-input>
+                    <div v-if="productForm.cover && coverPreviewUrl" style="margin-top: 8px; margin-bottom: 12px;">
+                        <img
+                            :src="coverPreviewUrl"
+                            style="max-width: 160px; max-height: 120px; border: 1px solid #e5e7eb;"
+                            @error="handleCoverImageError"
+                        />
+                    </div>
+                    <div v-if="!productForm.cover" style="margin-top: 8px;">
+                        <el-tag size="small" type="success" effect="plain" style="font-size: 11px; padding: 2px 8px;">
+                            <el-icon style="margin-right: 4px; font-size: 12px;"><Upload /></el-icon>
+                            点击选择图片按钮上传封面
+                        </el-tag>
+                    </div>
+                </el-form-item>
+                
+                <el-form-item label="商品价格" prop="price">
+                    <el-input-number
+                        v-model="productForm.price"
+                        :min="0"
+                        :precision="2"
+                        :step="0.01"
+                        placeholder="0.00"
+                        style="width: 100%;"
+                    />
+                </el-form-item>
+                
+                <el-form-item label="备注信息" prop="remark">
+                    <el-input
+                        v-model="productForm.remark"
+                        type="textarea"
+                        :rows="3"
+                        placeholder="请输入备注信息（可选）"
+                        maxlength="500"
+                        show-word-limit
+                    />
+                </el-form-item>
+            </el-form>
+            
+            <template #footer>
+                <div style="text-align: right;">
+                    <el-button @click="dialogVisible = false">取消</el-button>
+                    <el-button type="primary" @click="submitProduct" :loading="submitLoading">
+                        {{ isEdit ? '更新' : '添加' }}
+                    </el-button>
+                </div>
+            </template>
+        </el-dialog>
+    </div>
+
+    <!-- Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Element Plus -->
+    <script src="https://unpkg.com/element-plus/dist/index.full.js"></script>
+    <!-- Element Plus Icons -->
+    <script src="https://unpkg.com/@element-plus/icons-vue/dist/index.iife.js"></script>
+
+    <script>
+        const { createApp, ref, reactive, computed, onMounted, nextTick } = Vue;
+        const { ElMessage, ElMessageBox } = ElementPlus;
+
+        const app = createApp({
+            setup() {
+                // 获取pywebview API
+                const getPywebviewApi = () => {
+                    if (window.pywebview && window.pywebview.api) {
+                        return window.pywebview.api;
+                    } else if (window.parent && window.parent.pywebview && window.parent.pywebview.api) {
+                        return window.parent.pywebview.api;
+                    } else if (window.top && window.top.pywebview && window.top.pywebview.api) {
+                        return window.top.pywebview.api;
+                    }
+                    return null;
+                };
+
+                // 响应式数据
+                const loading = ref(false);
+                const submitLoading = ref(false);
+                const uploadingCover = ref(false);
+                const productList = ref([]);
+                const dialogVisible = ref(false);
+                const isEdit = ref(false);
+                const editLoading = ref(false);
+                const productFormRef = ref(null);
+
+                // 搜索表单
+                const searchForm = reactive({
+                    name: ''
+                });
+
+                // 分页数据
+                const pagination = reactive({
+                    page: 1,
+                    pageSize: 20,
+                    total: 0
+                });
+
+                // 商品表单
+                const productForm = reactive({
+                    id: null,
+                    name: '',
+                    cover: '',
+                    price: 0.00,
+                    remark: ''
+                });
+
+                // 封面图片预览URL
+                const coverPreviewUrl = ref('');
+
+                // 表单验证规则
+                const productRules = {
+                    name: [
+                        { required: true, message: '请输入商品名称', trigger: 'blur' },
+                        { min: 1, max: 100, message: '商品名称长度在 1 到 100 个字符', trigger: 'blur' }
+                    ],
+                    price: [
+                        { required: true, message: '请输入商品价格', trigger: 'blur' },
+                        { type: 'number', min: 0, message: '价格不能小于0', trigger: 'blur' }
+                    ]
+                };
+
+                // 计算属性
+                const dialogTitle = computed(() => {
+                    return isEdit.value ? '编辑商品' : '添加商品';
+                });
+
+                // 方法
+                const loadProducts = async () => {
+                    loading.value = true;
+                    try {
+                        const api = getPywebviewApi();
+                        if (!api) {
+                            ElMessage.error('API不可用');
+                            return;
+                        }
+
+                        const params = {
+                            page: pagination.page,
+                            page_size: pagination.pageSize,
+                            search_name: searchForm.name.trim()
+                        };
+
+                        const result = await api.query_products_api(params);
+                        
+                        if (result.success) {
+                            productList.value = result.data || [];
+                            pagination.total = result.total || 0;
+
+                            console.log('✅ 商品数据加载成功:', {
+                                count: productList.value.length,
+                                total: pagination.total,
+                                data: productList.value
+                            });
+
+                            // 预加载表格封面图片
+                            nextTick(() => {
+                                loadTableCovers();
+                            });
+                        } else {
+                            console.error('❌ 商品数据加载失败:', result.message);
+                            ElMessage.error(result.message || '加载商品列表失败');
+                            productList.value = [];
+                            pagination.total = 0;
+                        }
+                    } catch (error) {
+                        console.error('加载商品列表失败:', error);
+                        ElMessage.error('加载商品列表失败');
+                        productList.value = [];
+                        pagination.total = 0;
+                    } finally {
+                        loading.value = false;
+                    }
+                };
+
+                const searchProducts = () => {
+                    pagination.page = 1;
+                    loadProducts();
+                };
+
+                const refreshData = () => {
+                    loadProducts();
+                };
+
+                const showAddDialog = () => {
+                    isEdit.value = false;
+                    resetForm();
+                    dialogVisible.value = true;
+                };
+
+                const editProduct = async (product) => {
+                    editLoading.value = true;
+
+                    try {
+                        isEdit.value = true;
+                        Object.assign(productForm, {
+                            id: product.id,
+                            name: product.name || '',
+                            cover: product.cover || '',
+                            price: parseFloat(product.price || 0),
+                            remark: product.remark || ''
+                        });
+
+                        // 加载封面图片预览
+                        if (product.cover) {
+                            try {
+                                const api = getPywebviewApi();
+                                if (api) {
+                                    const previewResult = await api.get_image_data_url(product.cover);
+                                    if (previewResult.success) {
+                                        coverPreviewUrl.value = previewResult.data_url;
+                                    }
+                                }
+                            } catch (error) {
+                                console.error('加载封面图片预览失败:', error);
+                            }
+                        }
+
+                        dialogVisible.value = true;
+                    } finally {
+                        editLoading.value = false;
+                    }
+                };
+
+                const resetForm = () => {
+                    Object.assign(productForm, {
+                        id: null,
+                        name: '',
+                        cover: '',
+                        price: 0.00,
+                        remark: ''
+                    });
+                    coverPreviewUrl.value = ''; // 清空封面预览URL
+                    if (productFormRef.value) {
+                        productFormRef.value.clearValidate();
+                    }
+                };
+
+                const submitProduct = async () => {
+                    if (!productFormRef.value) return;
+
+                    try {
+                        const valid = await productFormRef.value.validate();
+                        if (!valid) return;
+                    } catch (error) {
+                        return;
+                    }
+
+                    const api = getPywebviewApi();
+                    if (!api) {
+                        ElMessage.error('API不可用');
+                        return;
+                    }
+
+                    submitLoading.value = true;
+                    try {
+                        const productData = {
+                            name: productForm.name.trim(),
+                            cover: productForm.cover.trim(),
+                            price: productForm.price,
+                            remark: productForm.remark.trim()
+                        };
+
+                        let result;
+                        if (isEdit.value) {
+                            productData.id = productForm.id;
+                            result = await api.update_product_api(productData);
+                        } else {
+                            result = await api.add_product_api(productData);
+                        }
+
+                        if (result.success) {
+                            ElMessage.success(result.message || (isEdit.value ? '商品更新成功' : '商品添加成功'));
+                            dialogVisible.value = false;
+                            loadProducts();
+                        } else {
+                            ElMessage.error(result.message || (isEdit.value ? '商品更新失败' : '商品添加失败'));
+                        }
+                    } catch (error) {
+                        console.error('提交商品失败:', error);
+                        ElMessage.error(isEdit.value ? '商品更新失败' : '商品添加失败');
+                    } finally {
+                        submitLoading.value = false;
+                    }
+                };
+
+                const deleteProduct = async (product) => {
+                    try {
+                        await ElMessageBox.confirm(
+                            `确定要删除商品 "${product.name}" 吗？删除后关联的图片将解除关联关系。`,
+                            '确认删除',
+                            {
+                                confirmButtonText: '确定删除',
+                                cancelButtonText: '取消',
+                                type: 'warning',
+                                confirmButtonClass: 'el-button--danger'
+                            }
+                        );
+
+                        const api = getPywebviewApi();
+                        if (!api) {
+                            ElMessage.error('API不可用');
+                            return;
+                        }
+
+                        const result = await api.delete_product_api(product.id);
+
+                        if (result.success) {
+                            ElMessage.success(result.message || '商品删除成功');
+                            loadProducts();
+                        } else {
+                            ElMessage.error(result.message || '商品删除失败');
+                        }
+                    } catch (error) {
+                        if (error !== 'cancel') {
+                            console.error('删除商品失败:', error);
+                            ElMessage.error('商品删除失败');
+                        }
+                    }
+                };
+
+                const handleSizeChange = (size) => {
+                    pagination.pageSize = size;
+                    pagination.page = 1;
+                    loadProducts();
+                };
+
+                const handleCurrentChange = (page) => {
+                    pagination.page = page;
+                    loadProducts();
+                };
+
+                const formatDateTime = (dateTime) => {
+                    if (!dateTime) return '-';
+                    try {
+                        const date = new Date(dateTime);
+                        return date.toLocaleString('zh-CN', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                    } catch (error) {
+                        return dateTime;
+                    }
+                };
+
+                const handleImageError = (event) => {
+                    event.target.style.display = 'none';
+                    const noImageDiv = document.createElement('div');
+                    noImageDiv.className = 'no-cover';
+                    noImageDiv.textContent = '加载失败';
+                    event.target.parentNode.appendChild(noImageDiv);
+                };
+
+                const selectCoverImage = async () => {
+                    try {
+                        const api = getPywebviewApi();
+                        if (!api) {
+                            ElMessage.error('API不可用');
+                            return;
+                        }
+
+                        uploadingCover.value = true;
+
+                        // 选择图片文件
+                        const selectResult = await api.select_image_file();
+                        if (!selectResult.success) {
+                            if (selectResult.message !== '未选择文件') {
+                                ElMessage.error(selectResult.message);
+                            }
+                            return;
+                        }
+
+                        // 上传图片文件
+                        const uploadResult = await api.upload_image_file(
+                            selectResult.file_path,
+                            selectResult.filename
+                        );
+
+                        if (uploadResult.success) {
+                            productForm.cover = uploadResult.path;
+
+                            // 立即加载图片预览
+                            try {
+                                const previewResult = await api.get_image_data_url(uploadResult.path);
+                                if (previewResult.success) {
+                                    coverPreviewUrl.value = previewResult.data_url;
+                                }
+                            } catch (error) {
+                                console.error('加载图片预览失败:', error);
+                            }
+
+                            ElMessage.success('图片上传成功');
+                        } else {
+                            ElMessage.error(uploadResult.message || '图片上传失败');
+                        }
+
+                    } catch (error) {
+                        console.error('选择图片失败:', error);
+                        ElMessage.error('选择图片失败');
+                    } finally {
+                        uploadingCover.value = false;
+                    }
+                };
+
+                const loadProductImages = async () => {
+                    const api = getPywebviewApi();
+                    if (!api) return;
+
+                    for (const product of productList.value) {
+                        if (product.cover) {
+                            try {
+                                const result = await api.get_image_data_url(product.cover);
+                                if (result.success) {
+                                    // 找到对应的img元素并设置src
+                                    const imgElement = document.querySelector(`img[ref="cover-${product.id}"]`);
+                                    if (imgElement) {
+                                        imgElement.src = result.data_url;
+                                        imgElement.style.display = 'block';
+                                        // 隐藏加载提示
+                                        const loadingElement = imgElement.parentNode.querySelector('.loading-cover');
+                                        if (loadingElement) {
+                                            loadingElement.style.display = 'none';
+                                        }
+                                    }
+                                }
+                            } catch (error) {
+                                console.error('加载商品图片失败:', error);
+                            }
+                        }
+                    }
+                };
+
+                const getCoverImageUrl = async (imagePath) => {
+                    if (!imagePath) return '';
+
+                    // 如果是网络图片，直接返回
+                    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+                        return imagePath;
+                    }
+
+                    const api = getPywebviewApi();
+                    if (!api) return '';
+
+                    try {
+                        // 通过API获取图片数据URL
+                        const result = await api.get_image_data_url(imagePath);
+                        if (result.success) {
+                            return result.data_url;
+                        } else {
+                            console.error('获取图片失败:', result.message);
+                            return '';
+                        }
+                    } catch (error) {
+                        console.error('获取图片失败:', error);
+                        return '';
+                    }
+                };
+
+                // 封面URL缓存
+                const coverUrlCache = new Map();
+
+                const getTableImageUrl = async (imagePath) => {
+                    if (!imagePath) return '';
+
+                    // 如果是网络图片，直接返回
+                    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+                        return imagePath;
+                    }
+
+                    // 检查缓存
+                    if (coverUrlCache.has(imagePath)) {
+                        return coverUrlCache.get(imagePath);
+                    }
+
+                    // 通过API获取文件Blob
+                    const api = getPywebviewApi();
+                    if (!api) return '';
+
+                    try {
+                        const result = await api.get_image_blob(imagePath);
+                        if (result.success && result.blob_data) {
+                            // 将base64转换为Blob
+                            const byteCharacters = atob(result.blob_data);
+                            const byteNumbers = new Array(byteCharacters.length);
+                            for (let i = 0; i < byteCharacters.length; i++) {
+                                byteNumbers[i] = byteCharacters.charCodeAt(i);
+                            }
+                            const byteArray = new Uint8Array(byteNumbers);
+                            const blob = new Blob([byteArray], { type: result.mime_type || 'image/jpeg' });
+
+                            // 创建Object URL
+                            const objectUrl = URL.createObjectURL(blob);
+                            coverUrlCache.set(imagePath, objectUrl);
+                            return objectUrl;
+                        }
+                    } catch (error) {
+                        console.error('获取封面失败:', error);
+                    }
+
+                    return '';
+                };
+
+                const loadTableCovers = async () => {
+                    console.log('🖼️ 开始加载表格封面图片...');
+
+                    for (const product of productList.value) {
+                        if (product.cover && !product.coverObjectUrl) {
+                            try {
+                                const objectUrl = await getTableImageUrl(product.cover);
+                                if (objectUrl) {
+                                    product.coverObjectUrl = objectUrl;
+                                }
+                            } catch (error) {
+                                console.error('加载表格封面失败:', product.cover, error);
+                            }
+                        }
+                    }
+
+                    console.log('✅ 表格封面加载完成');
+                };
+
+                const handleCoverImageError = (event) => {
+                    handleImageError(event);
+                };
+
+                // 生命周期
+                onMounted(() => {
+                    console.log('🚀 商品管理页面已挂载，开始加载数据...');
+                    console.log('📊 当前productList状态:', productList.value);
+                    console.log('📊 当前loading状态:', loading.value);
+
+                    loadProducts();
+                });
+
+                return {
+                    loading,
+                    submitLoading,
+                    uploadingCover,
+                    productList,
+                    dialogVisible,
+                    isEdit,
+                    productFormRef,
+                    searchForm,
+                    pagination,
+                    productForm,
+                    productRules,
+                    dialogTitle,
+                    loadProducts,
+                    searchProducts,
+                    refreshData,
+                    showAddDialog,
+                    editProduct,
+                    resetForm,
+                    submitProduct,
+                    deleteProduct,
+                    handleSizeChange,
+                    handleCurrentChange,
+                    formatDateTime,
+                    handleImageError,
+                    loadProductImages,
+                    selectCoverImage,
+                    getCoverImageUrl,
+                    getTableImageUrl,
+                    loadTableCovers,
+                    editLoading,
+                    handleCoverImageError,
+                    coverPreviewUrl
+                };
+            }
+        });
+
+        // 注册所有图标
+        Object.keys(ElementPlusIconsVue).forEach(key => {
+            app.component(key, ElementPlusIconsVue[key]);
+        });
+
+        // 注册Element Plus图标
+        for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
+            app.component(key, component);
+        }
+
+        app.use(ElementPlus).mount('#app');
+    </script>
+</body>
+
+</html>

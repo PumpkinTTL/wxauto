@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>话术管理</title>
+    <!-- Element Plus CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <!-- Animate.css -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background: #f8fafc;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+
+        .container {
+            padding: 12px;
+            height: calc(100vh - 24px);
+            overflow-y: auto;
+            background: #f8fafc;
+        }
+
+        .page-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 16px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+        }
+
+        .content-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #e5e7eb;
+            background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        .animate-slide-in {
+            animation: slideInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideInUp {
+            0% {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            100% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .speech-content {
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .room-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .platform-wechat { background: #dcfce7; color: #166534; }
+        .platform-douyin { background: #fef3c7; color: #92400e; }
+        .platform-kuaishou { background: #dbeafe; color: #1e40af; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="container animate-slide-in">
+            <!-- 页面头部 -->
+            <div class="page-header">
+                <h1 style="margin: 0 0 6px 0; font-size: 22px; font-weight: 600;">
+                    <i class="el-icon-chat-line-round" style="margin-right: 8px;"></i>
+                    话术管理
+                </h1>
+                <p style="margin: 0; opacity: 0.9; font-size: 14px;">
+                    管理直播间话术模板，支持绑定不同平台的直播间
+                </p>
+            </div>
+
+            <!-- 统计卡片 -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <div>
+                            <div style="color: #6b7280; font-size: 12px; margin-bottom: 2px;">总话术数</div>
+                            <div style="font-size: 20px; font-weight: 600; color: #1f2937;">{{ totalSpeech }}</div>
+                        </div>
+                        <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                            <el-icon size="18" color="white"><ChatLineRound /></el-icon>
+                        </div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <div>
+                            <div style="color: #6b7280; font-size: 12px; margin-bottom: 2px;">启用话术</div>
+                            <div style="font-size: 20px; font-weight: 600; color: #059669;">{{ activeSpeech }}</div>
+                        </div>
+                        <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                            <el-icon size="18" color="white"><Check /></el-icon>
+                        </div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <div>
+                            <div style="color: #6b7280; font-size: 12px; margin-bottom: 2px;">绑定直播间</div>
+                            <div style="font-size: 20px; font-weight: 600; color: #7c3aed;">{{ boundRooms }}</div>
+                        </div>
+                        <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #8b5cf6, #7c3aed); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                            <el-icon size="18" color="white"><Link /></el-icon>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 主内容区 -->
+            <div class="content-card">
+                <div class="card-header">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <div>
+                            <h2 style="margin: 0; font-size: 16px; font-weight: 600; color: #1f2937;">话术列表</h2>
+                            <p style="margin: 2px 0 0 0; color: #6b7280; font-size: 12px;">管理所有直播间话术模板</p>
+                        </div>
+                        <div style="display: flex; gap: 12px;">
+                            <el-button type="primary" @click="showAddDialog" :icon="Plus">
+                                添加话术
+                            </el-button>
+                            <el-button @click="loadData" :loading="loading" :icon="Refresh">
+                                {{ loading ? '加载中...' : '刷新' }}
+                            </el-button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <!-- 筛选器 -->
+                    <div style="margin-bottom: 16px; padding: 12px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+                        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                            <el-input
+                                v-model="searchKeyword"
+                                placeholder="搜索话术内容..."
+                                clearable
+                                size="small"
+                                style="width: 200px;"
+                                @input="handleSearch">
+                                <template #prefix>
+                                    <el-icon><Search /></el-icon>
+                                </template>
+                            </el-input>
+                            <el-button size="small" @click="resetFilters" :icon="RefreshLeft" type="info" plain>
+                                重置
+                            </el-button>
+                        </div>
+                    </div>
+
+                    <!-- 话术表格 -->
+                    <el-table :data="speechList" v-loading="loading" style="width: 100%;" stripe size="small">
+                        <el-table-column prop="id" label="ID" width="60" align="center"></el-table-column>
+                        <el-table-column prop="content" label="话术内容" min-width="250">
+                            <template #default="scope">
+                                <div class="speech-content" :title="scope.row.content" style="font-size: 13px;">
+                                    {{ scope.row.content }}
+                                </div>
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="room_name" label="绑定直播间" width="160">
+                            <template #default="scope">
+                                <div v-if="scope.row.room_name" class="room-tag" :class="`platform-${scope.row.room_platform}`" style="font-size: 11px;">
+                                    <el-icon size="12"><VideoPlay /></el-icon>
+                                    {{ scope.row.room_name }}
+                                </div>
+                                <span v-else style="color: #9ca3af; font-size: 12px;">未绑定</span>
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="status" label="状态" width="80" align="center">
+                            <template #default="scope">
+                                <el-tag :type="scope.row.status === 1 ? 'success' : 'danger'" size="small">
+                                    {{ scope.row.status === 1 ? '启用' : '禁用' }}
+                                </el-tag>
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="create_time" label="创建时间" width="140" align="center">
+                            <template #default="scope">
+                                <span style="font-size: 12px;">{{ scope.row.create_time }}</span>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="操作" width="160" align="center">
+                            <template #default="scope">
+                                <el-button size="small" type="primary" @click="editSpeech(scope.row)" :icon="Edit">
+                                    编辑
+                                </el-button>
+                                <el-button size="small" type="danger" @click="deleteSpeech(scope.row)" :icon="Delete">
+                                    删除
+                                </el-button>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 添加/编辑话术对话框 -->
+        <el-dialog
+            v-model="dialogVisible"
+            :title="dialogTitle"
+            width="700px"
+            :before-close="handleDialogClose">
+            <el-form :model="speechForm" :rules="speechRules" ref="speechFormRef" label-width="100px">
+                <el-form-item label="话术内容" prop="content">
+                    <el-input 
+                        v-model="speechForm.content" 
+                        type="textarea" 
+                        :rows="4" 
+                        placeholder="请输入话术内容"
+                        maxlength="500"
+                        show-word-limit>
+                    </el-input>
+                </el-form-item>
+                <el-form-item label="绑定直播间" prop="room_id">
+                    <el-select v-model="speechForm.room_id" placeholder="选择直播间（可选）" clearable style="width: 100%;">
+                        <el-option 
+                            v-for="room in roomsList" 
+                            :key="room.id" 
+                            :label="room.name" 
+                            :value="room.id">
+                            <span>{{ room.name }}</span>
+                            <span style="float: right; color: #8492a6; font-size: 12px;">{{ room.platform }}</span>
+                        </el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="状态" prop="status">
+                    <el-radio-group v-model="speechForm.status">
+                        <el-radio :label="1">启用</el-radio>
+                        <el-radio :label="0">禁用</el-radio>
+                    </el-radio-group>
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <span class="dialog-footer">
+                    <el-button @click="dialogVisible = false">取消</el-button>
+                    <el-button type="primary" @click="saveSpeech" :loading="saving">
+                        {{ isEdit ? '更新' : '添加' }}
+                    </el-button>
+                </span>
+            </template>
+        </el-dialog>
+    </div>
+
+    <!-- Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Element Plus -->
+    <script src="https://unpkg.com/element-plus/dist/index.full.js"></script>
+    <!-- Element Plus Icons -->
+    <script src="https://unpkg.com/@element-plus/icons-vue/dist/index.iife.js"></script>
+
+    <script>
+        const { createApp, ref, computed, onMounted } = Vue;
+        const { ElMessage, ElMessageBox } = ElementPlus;
+
+        const app = createApp({
+            setup() {
+                // 响应式数据
+                const loading = ref(false);
+                const saving = ref(false);
+                const speechList = ref([]);
+                const roomsList = ref([]);
+                const dialogVisible = ref(false);
+                const isEdit = ref(false);
+                const searchKeyword = ref('');
+                const speechFormRef = ref(null);
+
+                // 表单数据
+                const speechForm = ref({
+                    id: null,
+                    content: '',
+                    room_id: null,
+                    status: 1
+                });
+
+                // 表单验证规则
+                const speechRules = {
+                    content: [
+                        { required: true, message: '请输入话术内容', trigger: 'blur' },
+                        { min: 1, max: 500, message: '话术内容长度在 1 到 500 个字符', trigger: 'blur' }
+                    ]
+                };
+
+                // 计算属性
+                const dialogTitle = computed(() => isEdit.value ? '编辑话术' : '添加话术');
+                const totalSpeech = computed(() => speechList.value.length);
+                const activeSpeech = computed(() => speechList.value.filter(item => item.status === 1).length);
+                const boundRooms = computed(() => {
+                    const roomIds = new Set(speechList.value.filter(item => item.room_id).map(item => item.room_id));
+                    return roomIds.size;
+                });
+
+                // 获取pywebview API - 借鉴其他模块的实现
+                const getPywebviewApi = () => {
+                    if (window.pywebview && window.pywebview.api) {
+                        return window.pywebview.api;
+                    } else if (window.parent && window.parent.pywebview && window.parent.pywebview.api) {
+                        return window.parent.pywebview.api;
+                    } else if (window.top && window.top.pywebview && window.top.pywebview.api) {
+                        return window.top.pywebview.api;
+                    }
+                    return null;
+                };
+
+                // 等待API就绪的通用方法
+                const waitForApi = async () => {
+                    let api = getPywebviewApi();
+                    if (!api) {
+                        for (let i = 0; i < 5; i++) {
+                            await new Promise(resolve => setTimeout(resolve, 300));
+                            api = getPywebviewApi();
+                            if (api) break;
+                        }
+                        if (!api) {
+                            throw new Error('无法连接到后端API，请确保应用正常运行');
+                        }
+                    }
+                    return api;
+                };
+
+                // 加载数据
+                const loadData = async () => {
+                    loading.value = true;
+                    try {
+                        console.log('开始加载数据...');
+
+                        const api = await waitForApi();
+                        console.log('API连接成功，开始调用接口...');
+
+                        // 加载话术列表
+                        console.log('调用 get_speech_list...');
+                        console.log('搜索参数:', {
+                            search: searchKeyword.value || null
+                        });
+
+                        const speechResult = await api.get_speech_list(
+                            searchKeyword.value || null
+                        );
+                        console.log('话术列表结果:', speechResult);
+
+                        if (speechResult && speechResult.success) {
+                            speechList.value = speechResult.data || [];
+                            console.log(`✅ 话术列表加载成功，共 ${speechList.value.length} 条`);
+                        } else {
+                            console.error('话术列表加载失败:', speechResult);
+                            ElMessage.error(speechResult?.message || '话术列表加载失败');
+                        }
+
+                        // 加载直播间列表
+                        console.log('调用 get_rooms_list...');
+                        const roomsResult = await api.get_rooms_list();
+                        console.log('直播间列表结果:', roomsResult);
+
+                        if (roomsResult && roomsResult.success) {
+                            roomsList.value = roomsResult.data || [];
+                            console.log(`✅ 直播间列表加载成功，共 ${roomsList.value.length} 条`);
+                        } else {
+                            console.error('直播间列表加载失败:', roomsResult);
+                            ElMessage.error(roomsResult?.message || '直播间列表加载失败');
+                        }
+
+                    } catch (error) {
+                        console.error('加载数据失败:', error);
+                        ElMessage.error(`加载数据失败: ${error.message}`);
+                    } finally {
+                        loading.value = false;
+                    }
+                };
+
+                // 显示添加对话框
+                const showAddDialog = () => {
+                    isEdit.value = false;
+                    speechForm.value = {
+                        id: null,
+                        content: '',
+                        room_id: null,
+                        status: 1
+                    };
+                    dialogVisible.value = true;
+                };
+
+                // 编辑话术
+                const editSpeech = (row) => {
+                    isEdit.value = true;
+                    speechForm.value = {
+                        id: row.id,
+                        content: row.content,
+                        room_id: row.room_id,
+                        status: row.status
+                    };
+                    dialogVisible.value = true;
+                };
+
+                // 保存话术
+                const saveSpeech = async () => {
+                    if (!speechFormRef.value) {
+                        ElMessage.error('表单引用错误');
+                        return;
+                    }
+
+                    try {
+                        await speechFormRef.value.validate();
+                        saving.value = true;
+
+                        const api = await waitForApi();
+                        let result;
+
+                        if (isEdit.value) {
+                            result = await api.update_speech(
+                                speechForm.value.id,
+                                speechForm.value.content,
+                                speechForm.value.status
+                            );
+                        } else {
+                            result = await api.add_speech(
+                                speechForm.value.content,
+                                speechForm.value.status
+                            );
+                        }
+
+                        if (result && result.success) {
+                            ElMessage.success(result.message);
+                            dialogVisible.value = false;
+                            loadData();
+                        } else {
+                            ElMessage.error(result?.message || '操作失败');
+                        }
+
+                    } catch (error) {
+                        console.error('保存失败:', error);
+                        ElMessage.error('保存失败');
+                    } finally {
+                        saving.value = false;
+                    }
+                };
+
+                // 删除话术
+                const deleteSpeech = async (row) => {
+                    try {
+                        await ElMessageBox.confirm(
+                            `确定要删除话术"${row.content.substring(0, 20)}..."吗？`,
+                            '确认删除',
+                            {
+                                confirmButtonText: '确定',
+                                cancelButtonText: '取消',
+                                type: 'warning',
+                            }
+                        );
+
+                        const api = await waitForApi();
+                        const result = await api.delete_speech(row.id);
+
+                        if (result && result.success) {
+                            ElMessage.success(result.message);
+                            loadData();
+                        } else {
+                            ElMessage.error(result?.message || '删除失败');
+                        }
+
+                    } catch (error) {
+                        if (error !== 'cancel') {
+                            console.error('删除失败:', error);
+                            ElMessage.error('删除失败');
+                        }
+                    }
+                };
+
+                // 关闭对话框
+                const handleDialogClose = (done) => {
+                    if (saving.value) {
+                        ElMessage.warning('正在保存中，请稍候...');
+                        return;
+                    }
+                    done();
+                };
+
+                // 搜索处理
+                const handleSearch = () => {
+                    // 实时搜索，延迟执行
+                    clearTimeout(window.searchTimer);
+                    window.searchTimer = setTimeout(() => {
+                        loadData();
+                    }, 300);
+                };
+
+                // 重置搜索
+                const resetFilters = () => {
+                    searchKeyword.value = '';
+                    loadData();
+                };
+
+                // 组件挂载时加载数据
+                onMounted(() => {
+                    console.log('组件已挂载，开始加载数据...');
+
+                    // 检查API是否可用
+                    if (window.pywebview && window.pywebview.api) {
+                        console.log('API立即可用，直接加载数据');
+                        loadData();
+                    } else {
+                        console.log('API不可用，延迟加载数据');
+                        // 延迟一点时间确保API已经准备好
+                        setTimeout(() => {
+                            loadData();
+                        }, 1000);
+                    }
+                });
+
+                return {
+                    loading,
+                    saving,
+                    speechList,
+                    roomsList,
+                    dialogVisible,
+                    isEdit,
+
+                    speechForm,
+                    speechRules,
+                    speechFormRef,
+                    dialogTitle,
+                    totalSpeech,
+                    activeSpeech,
+                    boundRooms,
+                    loadData,
+                    showAddDialog,
+                    editSpeech,
+                    saveSpeech,
+                    deleteSpeech,
+                    handleDialogClose,
+                    searchKeyword,
+                    handleSearch,
+                    resetFilters
+                };
+            }
+        });
+
+        // 注册所有图标
+        Object.keys(ElementPlusIconsVue).forEach(key => {
+            app.component(key, ElementPlusIconsVue[key]);
+        });
+
+        app.use(ElementPlus).mount('#app');
+    </script>
+</body>
+</html>

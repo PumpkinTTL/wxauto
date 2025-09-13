@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>任务与日志管理</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="https://unpkg.com/element-plus@2/dist/index.full.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/element-plus@2/dist/index.css">
+    <script src="https://unpkg.com/@element-plus/icons-vue@2/dist/index.iife.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 16px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8fafc;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            height: 100%;
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            flex-shrink: 0;
+        }
+        .card-body {
+            padding: 20px;
+        }
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0;
+            color: #1f2937;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        .card-subtitle {
+            margin: 4px 0 0 0;
+            color: #6b7280;
+            font-size: 12px;
+        }
+        /* 删除了全高度表格相关样式 */
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="container">
+            <!-- API连接状态指示器 -->
+            <div v-if="!apiReady" style="background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; padding: 12px 16px; border-radius: 6px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                <el-icon class="is-loading">
+                    <Loading />
+                </el-icon>
+                <span>正在连接后端API...</span>
+            </div>
+            
+            <!-- 任务管理卡片 -->
+            <div class="card">
+                <div class="card-header">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h3 class="card-title">
+                                <el-icon color="#409eff"><List /></el-icon>
+                                跟播任务列表
+                            </h3>
+                            <p class="card-subtitle">管理所有跟播任务，支持手动取消</p>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <el-button size="small" @click="refreshTasks">
+                                <el-icon style="margin-right: 4px;"><Refresh /></el-icon>
+                                刷新
+                            </el-button>
+                            <el-select v-model="taskTypeFilter" placeholder="任务类型" size="small" style="width: 140px;">
+                                <el-option label="全部" value=""></el-option>
+                                <el-option label="直播提醒" value="live_reminder"></el-option>
+                                <el-option label="跟播任务" value="follow_task"></el-option>
+                                <el-option label="测试跟播" value="test_follow_task"></el-option>
+                                <el-option label="图像识别" value="image_recognition"></el-option>
+                                <el-option label="弹幕任务" value="danmu_task"></el-option>
+                            </el-select>
+                            <el-select v-model="taskStatusFilter" placeholder="任务状态" size="small" style="width: 120px;">
+                                <el-option label="全部" value=""></el-option>
+                                <el-option label="等待触发" value="0"></el-option>
+                                <el-option label="已触发" value="1"></el-option>
+                            </el-select>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <el-table :data="paginatedTasks" v-loading="tasksLoading" size="small" style="width: 100%;">
+                        <el-table-column prop="task_id" label="任务ID" width="180" show-overflow-tooltip>
+                            <template #default="scope">
+                                <el-text type="primary" style="font-family: monospace; font-size: 11px;">{{ scope.row.task_id }}</el-text>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="任务类型" width="100" align="center">
+                            <template #default="scope">
+                                <el-tag :type="getTaskTypeTagType(scope.row.task_type)" size="small">{{ scope.row.type_text }}</el-tag>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="直播间" show-overflow-tooltip>
+                            <template #default="scope">
+                                <div v-if="scope.row.room_names">
+                                    <span v-for="(name, index) in JSON.parse(scope.row.room_names)" :key="index">
+                                        {{ name }}<span v-if="index < JSON.parse(scope.row.room_names).length - 1">, </span>
+                                    </span>
+                                </div>
+                                <div v-else-if="scope.row.room_id">
+                                    ID: {{ scope.row.room_id }}
+                                </div>
+                                <el-text type="info" v-else>无</el-text>
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="run_time" label="计划执行时间" width="140" align="center">
+                            <template #default="scope">
+                                <el-text style="font-size: 11px;">{{ formatTime(scope.row.run_time) }}</el-text>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="状态" width="80" align="center">
+                            <template #default="scope">
+                                <el-tag :type="scope.row.status === 0 ? 'warning' : 'info'" size="small">
+                                    {{ scope.row.status_text }}
+                                </el-tag>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="执行状态" width="100" align="center">
+                            <template #default="scope">
+                                <el-tag v-if="scope.row.execution_status === 'completed'" type="success" size="small">已完成</el-tag>
+                                <el-tag v-else-if="scope.row.execution_status === 'failed'" type="danger" size="small">已失败</el-tag>
+                                <el-tag v-else-if="scope.row.execution_status === 'executing'" type="warning" size="small">执行中</el-tag>
+                                <el-tag v-else type="info" size="small">未执行</el-tag>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="操作" width="120" align="center">
+                            <template #default="scope">
+                                <el-button v-if="scope.row.status === 0" type="danger" size="small" plain @click="cancelTask(scope.row.task_id)">
+                                    <el-icon style="margin-right: 2px;"><Close /></el-icon>
+                                    取消任务
+                                </el-button>
+                                <el-text v-else type="info" size="small">已失效</el-text>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                    
+                    <!-- 任务列表分页 -->
+                    <div style="margin-top: 16px; display: flex; justify-content: space-between; align-items: center;">
+                        <div style="font-size: 12px; color: #666;">
+                            共 {{ filteredTasks.length }} 条记录，显示 {{ (taskCurrentPage - 1) * taskPageSize + 1 }} - {{ Math.min(taskCurrentPage * taskPageSize, filteredTasks.length) }} 条
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 12px; color: #666;">每页显示</span>
+                                <el-select v-model="taskPageSize" size="small" style="width: 80px;" @change="taskCurrentPage = 1">
+                                    <el-option label="5" :value="5"></el-option>
+                                    <el-option label="10" :value="10"></el-option>
+                                </el-select>
+                                <span style="font-size: 12px; color: #666;">条</span>
+                            </div>
+                            <el-pagination
+                                v-model:current-page="taskCurrentPage"
+                                :page-size="taskPageSize"
+                                :total="filteredTasks.length"
+                                layout="prev, pager, next"
+                                size="small"
+                                hide-on-single-page>
+                            </el-pagination>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 任务日志卡片 -->
+            <div class="card">
+                <div class="card-header">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h3 class="card-title">
+                                <el-icon color="#67c23a"><Document /></el-icon>
+                                任务执行日志
+                            </h3>
+                            <p class="card-subtitle">查看任务执行详情和结果</p>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <el-button size="small" @click="refreshTaskLogs">
+                                <el-icon style="margin-right: 4px;"><Refresh /></el-icon>
+                                刷新
+                            </el-button>
+                            <el-select v-model="logStatusFilter" placeholder="执行状态" size="small" style="width: 120px;">
+                                <el-option label="全部" value=""></el-option>
+                                <el-option label="成功" value="1"></el-option>
+                                <el-option label="失败" value="2"></el-option>
+                            </el-select>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <el-table :data="paginatedTaskLogs" v-loading="logsLoading" size="small" style="width: 100%;">
+                        <el-table-column prop="task_id" label="任务ID" width="180" show-overflow-tooltip>
+                            <template #default="scope">
+                                <el-text type="primary" style="font-family: monospace; font-size: 11px;">{{ scope.row.task_id }}</el-text>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="执行状态" width="80" align="center">
+                            <template #default="scope">
+                                <el-tag :type="scope.row.status === 1 ? 'success' : 'danger'" size="small">
+                                    {{ scope.row.status_text }}
+                                </el-tag>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="直播间" width="120">
+                            <template #default="scope">
+                                <div v-if="scope.row.room_name">
+                                    <el-text>{{ scope.row.room_name }}</el-text>
+                                </div>
+                                <div v-else-if="scope.row.room_id">
+                                    <el-text type="info">ID: {{ scope.row.room_id }}</el-text>
+                                </div>
+                                <el-text type="info" v-else>-</el-text>
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="message" label="状态详情" show-overflow-tooltip>
+                            <template #default="scope">
+                                <el-text :type="scope.row.status === 1 ? 'success' : 'danger'" style="font-size: 12px;">
+                                    {{ scope.row.message }}
+                                </el-text>
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="execution_time" label="执行时间" width="140" align="center">
+                            <template #default="scope">
+                                <el-text style="font-size: 11px;">{{ formatTime(scope.row.execution_time) }}</el-text>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                    
+                    <!-- 任务日志分页 -->
+                    <div style="margin-top: 16px; display: flex; justify-content: space-between; align-items: center;">
+                        <div style="font-size: 12px; color: #666;">
+                            共 {{ filteredTaskLogs.length }} 条记录，显示 {{ (logCurrentPage - 1) * logPageSize + 1 }} - {{ Math.min(logCurrentPage * logPageSize, filteredTaskLogs.length) }} 条
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 12px; color: #666;">每页显示</span>
+                                <el-select v-model="logPageSize" size="small" style="width: 80px;" @change="logCurrentPage = 1">
+                                    <el-option label="5" :value="5"></el-option>
+                                    <el-option label="10" :value="10"></el-option>
+                                </el-select>
+                                <span style="font-size: 12px; color: #666;">条</span>
+                            </div>
+                            <el-pagination
+                                v-model:current-page="logCurrentPage"
+                                :page-size="logPageSize"
+                                :total="filteredTaskLogs.length"
+                                layout="prev, pager, next"
+                                size="small"
+                                hide-on-single-page>
+                            </el-pagination>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, computed, onMounted, nextTick } = Vue;
+        const { ElMessage, ElMessageBox } = ElementPlus;
+
+        // 等待pywebview API就绪 - 支持多层iframe嵌套
+        const waitForApi = () => {
+            return new Promise((resolve, reject) => {
+                const maxAttempts = 50; // 最多尝试5秒
+                let attempts = 0;
+                
+                const checkApi = () => {
+                    attempts++;
+                    
+                    // 检查当前窗口
+                    if (window.pywebview && window.pywebview.api) {
+                        console.log('✅ 在当前窗口找到API');
+                        resolve(window.pywebview.api);
+                        return;
+                    }
+                    
+                    // 检查父窗口 (follow_wechat.html)
+                    try {
+                        if (window.parent && window.parent !== window && window.parent.pywebview && window.parent.pywebview.api) {
+                            console.log('✅ 在父窗口找到API');
+                            resolve(window.parent.pywebview.api);
+                            return;
+                        }
+                    } catch (e) {
+                        console.warn('无法访问父窗口API:', e.message);
+                    }
+                    
+                    // 检查顶层窗口 (index.html)
+                    try {
+                        if (window.top && window.top !== window && window.top.pywebview && window.top.pywebview.api) {
+                            console.log('✅ 在顶层窗口找到API');
+                            resolve(window.top.pywebview.api);
+                            return;
+                        }
+                    } catch (e) {
+                        console.warn('无法访问顶层窗口API:', e.message);
+                    }
+                    
+                    if (attempts >= maxAttempts) {
+                        console.error('❌ 超时：无法找到pywebview API');
+                        reject(new Error('无法连接到后端API，请确保应用正常运行'));
+                        return;
+                    }
+                    
+                    console.log(`🔍 尝试 ${attempts}/${maxAttempts}: 正在查找API...`);
+                    setTimeout(checkApi, 100);
+                };
+                
+                checkApi();
+            });
+        };
+
+        const app = createApp({
+            setup() {
+                const tasks = ref([]);
+                const taskLogs = ref([]);
+                const tasksLoading = ref(false);
+                const logsLoading = ref(false);
+                const taskTypeFilter = ref('');
+                const taskStatusFilter = ref('');
+                const logStatusFilter = ref('');
+                const apiReady = ref(false); // API连接状态
+                
+                // 分页相关状态
+                const taskCurrentPage = ref(1);
+                const taskPageSize = ref(5); // 默认每页5条
+                const logCurrentPage = ref(1);
+                const logPageSize = ref(5); // 默认每页5条
+
+                // 计算属性：筛选后的任务
+                const filteredTasks = computed(() => {
+                    return tasks.value.filter(task => {
+                        if (taskTypeFilter.value && task.task_type !== taskTypeFilter.value) return false;
+                        if (taskStatusFilter.value && task.status.toString() !== taskStatusFilter.value) return false;
+                        return true;
+                    });
+                });
+
+                // 计算属性：筛选后的日志
+                const filteredTaskLogs = computed(() => {
+                    return taskLogs.value.filter(log => {
+                        if (logStatusFilter.value && log.status.toString() !== logStatusFilter.value) return false;
+                        return true;
+                    });
+                });
+                
+                // 计算属性：分页后的任务数据
+                const paginatedTasks = computed(() => {
+                    const start = (taskCurrentPage.value - 1) * taskPageSize.value;
+                    const end = start + taskPageSize.value;
+                    return filteredTasks.value.slice(start, end);
+                });
+                
+                // 计算属性：分页后的日志数据
+                const paginatedTaskLogs = computed(() => {
+                    const start = (logCurrentPage.value - 1) * logPageSize.value;
+                    const end = start + logPageSize.value;
+                    return filteredTaskLogs.value.slice(start, end);
+                });
+
+                // 加载任务列表
+                const loadTasks = async () => {
+                    try {
+                        console.log('🔄 开始加载任务列表...');
+                        tasksLoading.value = true;
+                        
+                        const api = await waitForApi();
+                        console.log('🔌 调用 get_task_list API...');
+                        
+                        const result = await api.get_task_list();
+                        console.log('📊 API响应结果:', result);
+                        
+                        if (result && result.success) {
+                            tasks.value = result.data || [];
+                            console.log(`✅ 成功加载 ${tasks.value.length} 个任务`);
+                            
+                            // 处理任务数据，添加显示文本
+                            tasks.value.forEach(task => {
+                                task.type_text = getTaskTypeText(task.task_type);
+                                task.status_text = task.status === 0 ? '等待触发' : '已失效';
+                            });
+                        } else {
+                            console.error('获取任务失败:', result?.message);
+                            ElementPlus.ElMessage.error('获取任务失败: ' + (result?.message || '未知错误'));
+                        }
+                    } catch (error) {
+                        console.error('加载任务失败:', error);
+                        ElementPlus.ElMessage.error('加载任务失败: ' + error.message);
+                    } finally {
+                        tasksLoading.value = false;
+                    }
+                };
+
+                // 加载任务日志
+                const loadTaskLogs = async () => {
+                    try {
+                        console.log('🔄 开始加载任务日志...');
+                        logsLoading.value = true;
+                        
+                        const api = await waitForApi();
+                        console.log('🔌 调用 get_task_logs API...');
+                        
+                        const result = await api.get_task_logs();
+                        console.log('📊 API响应结果:', result);
+                        
+                        if (result && result.success) {
+                            taskLogs.value = result.data || [];
+                            console.log(`✅ 成功加载 ${taskLogs.value.length} 条日志`);
+                            
+                            // 处理日志数据，添加显示文本
+                            taskLogs.value.forEach(log => {
+                                log.status_text = log.status === 1 ? '成功' : '失败';
+                            });
+                        } else {
+                            console.error('获取任务日志失败:', result?.message);
+                            ElementPlus.ElMessage.error('获取任务日志失败: ' + (result?.message || '未知错误'));
+                        }
+                    } catch (error) {
+                        console.error('加载任务日志失败:', error);
+                        ElementPlus.ElMessage.error('加载任务日志失败: ' + error.message);
+                    } finally {
+                        logsLoading.value = false;
+                    }
+                };
+
+                // 刷新任务
+                const refreshTasks = async () => {
+                    await loadTasks();
+                    ElementPlus.ElMessage.success('任务列表已刷新');
+                };
+
+                // 刷新日志
+                const refreshTaskLogs = async () => {
+                    await loadTaskLogs();
+                    ElementPlus.ElMessage.success('任务日志已刷新');
+                };
+
+                // 取消任务（替换原来的失效任务功能）
+                const cancelTask = async (taskId) => {
+                    try {
+                        await ElementPlus.ElMessageBox.confirm('确定要取消这个任务吗？取消后任务将被标记为失效状态。', '确认取消', {
+                            confirmButtonText: '确定取消',
+                            cancelButtonText: '保留任务',
+                            type: 'warning'
+                        });
+
+                        const api = await waitForApi();
+                        const result = await api.invalidate_task(taskId);
+                        
+                        if (result && result.success) {
+                            ElementPlus.ElMessage.success('任务已取消');
+                            await loadTasks();
+                        } else {
+                            ElementPlus.ElMessage.error(result?.message || '取消失败');
+                        }
+                    } catch (error) {
+                        if (error !== 'cancel') {
+                            console.error('取消任务失败:', error);
+                            ElementPlus.ElMessage.error('操作失败');
+                        }
+                    }
+                };
+
+                // 获取任务类型文本
+                const getTaskTypeText = (taskType) => {
+                    switch (taskType) {
+                        case 'live_reminder':
+                            return '直播提醒';
+                        case 'follow_task':
+                            return '跟播任务';
+                        case 'test_follow_task':
+                            return '测试跟播';
+                        case 'image_recognition':
+                            return '图像识别';
+                        case 'danmu_task':
+                            return '弹幕任务';
+                        default:
+                            return taskType;
+                    }
+                };
+
+                // 获取任务类型标签类型
+                const getTaskTypeTagType = (taskType) => {
+                    switch (taskType) {
+                        case 'live_reminder':
+                            return 'primary';
+                        case 'follow_task':
+                            return 'success';
+                        case 'test_follow_task':
+                            return 'warning';
+                        case 'image_recognition':
+                            return 'info';
+                        case 'danmu_task':
+                            return '';
+                        default:
+                            return 'info';
+                    }
+                };
+
+                // 格式化时间
+                const formatTime = (timeStr) => {
+                    if (!timeStr) return '-';
+                    try {
+                        const date = new Date(timeStr);
+                        return date.toLocaleString('zh-CN');
+                    } catch (error) {
+                        return timeStr;
+                    }
+                };
+
+
+
+                // 组件挂载时加载数据
+                onMounted(async () => {
+                    console.log('📋 任务管理器正在启动...');
+                    
+                    try {
+                        // 测试API连接
+                        const api = await waitForApi();
+                        console.log('✅ API连接成功:', typeof api);
+                        apiReady.value = true; // 设置API就绪状态
+                        
+                        // 加载数据
+                        console.log('🔄 开始加载任务数据...');
+                        await loadTasks();
+                        console.log('✅ 任务数据加载完成');
+                        
+                        console.log('🔄 开始加载日志数据...');
+                        await loadTaskLogs();
+                        console.log('✅ 日志数据加载完成');
+                        
+                        console.log('🎉 任务管理器初始化完成');
+                    } catch (error) {
+                        console.error('❌ 任务管理器初始化失败:', error);
+                        ElementPlus.ElMessage.error('初始化失败: ' + error.message);
+                    }
+                });
+
+                return {
+                    tasks,
+                    taskLogs,
+                    tasksLoading,
+                    logsLoading,
+                    taskTypeFilter,
+                    taskStatusFilter,
+                    logStatusFilter,
+                    apiReady,
+                    // 分页相关状态
+                    taskCurrentPage,
+                    taskPageSize,
+                    logCurrentPage,
+                    logPageSize,
+                    // 计算属性
+                    filteredTasks,
+                    filteredTaskLogs,
+                    paginatedTasks,
+                    paginatedTaskLogs,
+                    // 方法
+                    loadTasks,
+                    loadTaskLogs,
+                    refreshTasks,
+                    refreshTaskLogs,
+                    cancelTask,
+                    getTaskTypeTagType,
+                    formatTime
+                };
+            }
+        });
+
+        // 注册所有图标
+        if (typeof ElementPlusIconsVue !== 'undefined') {
+            for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
+                app.component(key, component);
+            }
+        }
+
+        app.use(ElementPlus);
+        
+        // 挂载应用，添加错误处理
+        try {
+            app.mount('#app');
+            console.log('✅ Vue应用挂载成功');
+        } catch (error) {
+            console.error('❌ Vue应用挂载失败:', error);
+        }
+    </script>
+</body>
+</html>

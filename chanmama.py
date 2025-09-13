@@ -1,0 +1,167 @@
+import requests 
+import random 
+import time 
+from cmm import get_latest_token
+from proxies_util import static_proxies,filter_https_proxies
+baseUrl = 'https://api-service.chanmama.com/v1/author/detail/info?author_id='
+import json
+from cmm import extract_contact_code
+# 获取真实数据
+
+def getRealInfo(token,id,hasProxies=None):
+    
+        headers = {
+        'origin': 'https://www.chanmama.com',
+        'referer': 'https://www.chanmama.com/',
+        'user-agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E149 Safari/605.1',
+        'x-client-hash': '4e75f486521cd94kejhrkuheukgerh71142b5dd4ad628f72f616c4',
+        'x-client-id': 'kjiogjkerheheh',
+        'x-client-version': '3',
+        'x-encrypt-version': '4',
+        'x-platform-id': '100000',
+        'cookie': f'LOGIN-TOKEN-FORSNS={token}' if token else ''
+    }
+        # 链接地址
+        url = f"{baseUrl}{id}"
+        if hasProxies:
+            proxies = {
+            "http": f"http://{hasProxies}",
+            "https": f"http://{hasProxies}"
+        }
+            print('使用了代理')
+            try:
+                res = requests.get(url, headers=headers, proxies=proxies, verify=False, timeout=5)
+                try:
+                    jsonData = res.json().get('data')
+                except Exception as e:
+                    errMsg = res.json().get('errMsg')
+                    errCode = res.json().get('errCode')
+                    print(f"❌ 不存在data可能是异地登录或风控: {e}")
+                    return {
+                        'errCode':errCode,
+                        'errMsg':errMsg,
+                        'success':False,
+                    
+                    }
+                # 成功响应数据
+                jsonData = res.json().get('data')
+                # 签名
+                Signature = jsonData.get('signature')
+                unique = jsonData.get('unique_id')
+                return {
+                    'signature':Signature,
+                    'unique':unique,
+                    'success':True,
+                    'code': extract_contact_code(Signature) if extract_contact_code(Signature) else 'None'
+                }
+            except Exception as e:
+                print(f"请求发生异常可能是代理不可用")
+                res = False
+        else:
+            print('没有使用代理')
+            try:
+                res = requests.get(url, headers=headers, verify=False, timeout=5)
+                print(res.json())
+            except Exception as e:
+                print(f"未知异常: {e}")
+                res = False
+            
+        return res
+# 使用原生ip请求
+def defaultIPRequest():
+    getRealInfo(get_latest_token(), "HyTis_zzQryI88eovWCFtB1NW-aPBspR")
+
+def login():
+    pass
+
+   
+
+if __name__ == "__main__":
+    # 虚拟蝉妈妈 id 列表
+    datas = ['Te4oLu6PzddK8v0S_JURlE20CMuhagMW',
+             'HyTis_zzQryI88eovWCFtB1NW-aPBspR',
+             'VsVcTFNUhL-aDPQlN6FEPg','VsVcTFNUhL-aDPQlN6FEPg','VsVcTFNUhL-aDPQlN6FEPg',
+             'VsVcTFNUhL-aDPQlN6FEPg','VsVcTFNUhL-aDPQlN6FEPg','VsVcTFNUhL-aDPQlN6FEPg',
+             'VsVcTFNUhL-aDPQlN6FEPg','VsVcTFNUhL-aDPQlN6FEPg','VsVcTFNUhL-aDPQlN6FEPg',
+             'VsVcTFNUhL-aDPQlN6FEPg','VsVcTFNUhL-aDPQlN6FEPg','VsVcTFNUhL-aDPQlN6FEPg',
+             'VsVcTFNUhL-aDPQlN6FEPg','VsVcTFNUhL-aDPQlN6FEPg','VsVcTFNUhL-aDPQlN6FEPg']
+    count = 0
+    currentProxy = '147.28.240.214:9401'
+    token = get_latest_token()
+    needCount = 5
+    print(f"📊 正在过滤代理池可用状态...需要{needCount}个可用代理")
+    # 阻塞
+    proxies = filter_https_proxies(static_proxies,needed_count=needCount)
+    
+    # proxies = [
+    #     '147.28.240.215:443',
+    #     '147.28.240.216:443',
+    #     '147.28.240.217:443',
+    #     '147.28.240.218:443',
+    #     '147.28.240.214:9401',
+    # ]
+    # 索引clear
+    index = 0
+    # 计数
+    count=0
+    # 记录当前可用IP
+    availableProxy = None
+    for item in datas:
+        result={}
+        print(f"当前处理:{item}")
+        while availableProxy is not None and count<10:
+            result = getRealInfo(token,item,availableProxy)
+            
+            if(result==False):
+                print(f'复用当前代理:{availableProxy}不可用')
+                availableProxy = None
+                count = 0
+                index+=1
+                if index >= len(proxies):
+                    print(f'当前位池中最后一个ip,初始化回原位置...')
+                    index = 0
+                break
+            else:
+                 count+=1
+                 print(f'复用当前代理:{availableProxy}可用,使用{count}次') 
+                 
+            if count>=10:
+                availableProxy = None
+                count = 0
+                index+=1
+                if index >= len(proxies):
+                    print(f'当前位池中最后一个ip,初始化回原位置...')
+                    index = 0
+                print(f'已复用10次切换至下一个ip->:{proxies[index]}')
+            break
+           
+         
+        while True:
+            # 临时代理
+            _tmp = proxies[index]
+            result = getRealInfo(token,item,_tmp)
+            if(result==False):
+                print(f'当前代理:{_tmp}不可用')
+                index += 1
+                if index >= len(proxies):
+                    print(f'当前位池中最后一个ip,初始化回原位置...')
+                    index = 0
+                print(f'切换至:{proxies[index]}')
+                # 循环回来
+                if index >= len(proxies):
+                    index = 0
+                continue
+            else:
+                print(result)
+                count+=1
+                print(f'当前代理:{_tmp}可用,使用{count}次')
+                availableProxy = _tmp
+                break
+        if(result.get('success')):
+            print(f"成功获取数据:")
+        else:
+            print(f"❌ 请求失败: {result.get('errMsg')}-程序终止")
+            # 触发风控以后随意请求一个接口让目标服务器保存直连IP
+            defaultIPRequest()
+            break
+       

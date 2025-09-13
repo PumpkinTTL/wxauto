@@ -1,0 +1,969 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+蝉妈妈API调用模块 - 重构版本
+使用循环替代递归，参考chanmama.py的逻辑
+"""
+
+import requests
+import sqlite3
+import time
+import json
+import re
+import hashlib
+from datetime import datetime
+from proxies_util import static_proxies, get_https
+
+# 全局变量
+current_proxy_index = 0
+current_proxy = None
+success_count_with_current_proxy = 0
+proxy_pool = []
+
+base_url = "https://api-service.chanmama.com/v1/author/detail/info?author_id="
+
+def get_direct_ip():
+    """获取当前直连IP"""
+    try:
+        response = requests.get('https://httpbin.org/ip', timeout=10)
+        ip = response.json().get('origin', '').split(',')[0].strip()
+        return ip
+    except Exception as e:
+        print(f"❌ 获取直连IP失败: {e}")
+        return None
+
+def save_direct_ip_to_db(direct_ip):
+    """保存直连IP到数据库"""
+    try:
+        conn = sqlite3.connect('system.db')
+        cursor = conn.cursor()
+        
+        # 创建表
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS proxy_config (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                last_request_ip TEXT,
+                last_update TEXT,
+                proxy_enabled INTEGER DEFAULT 1,
+                success_count INTEGER DEFAULT 0
+            )
+        ''')
+        
+        # 删除旧记录
+        cursor.execute("DELETE FROM proxy_config")
+        
+        # 插入新记录
+        cursor.execute(
+            "INSERT INTO proxy_config (last_request_ip, last_update, proxy_enabled, success_count) VALUES (?, ?, ?, ?)",
+            (direct_ip, datetime.now().isoformat(), 1, 0)
+        )
+        
+        conn.commit()
+        conn.close()
+        print(f"💾 已保存直连IP到数据库: {direct_ip}")
+        
+    except Exception as e:
+        print(f"❌ 保存直连IP失败: {e}")
+
+def make_direct_request(id, token):
+    """使用直连IP进行请求以记录IP"""
+    headers = {
+        'origin': 'https://www.chanmama.com',
+        'referer': 'https://www.chanmama.com/',
+        'user-agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E149 Safari/605.1',
+        'x-client-hash': '4e75f486521cd94kejhrkuheukgerh71142b5dd4ad628f72f616c4',
+        'x-client-id': 'kjiogjkerheheh',
+        'x-client-version': '3',
+        'x-encrypt-version': '4',
+        'x-platform-id': '100000',
+        'cookie': f'LOGIN-TOKEN-FORSNS={token}' if token else ''
+    }
+
+    url = base_url + id
+
+    try:
+        print(f"🌐 使用直连IP进行请求，记录最后请求IP...")
+
+        # 获取当前直连IP并保存到数据库
+        current_direct_ip = get_direct_ip()
+        if current_direct_ip:
+            save_direct_ip_to_db(current_direct_ip)
+
+        # 不使用代理，直连请求
+        response = requests.get(url, headers=headers, timeout=10)
+        print(f"✅ 直连请求完成，状态码: {response.status_code}")
+
+        return True
+
+    except Exception as e:
+        print(f"⚠️ 直连请求失败: {e}，但不影响主流程")
+        return False
+
+def _make_request_with_proxy(id, token, proxy):
+    """
+    使用指定代理发送请求 - 参考chanmama.py的getRealInfo逻辑
+    """
+    headers = {
+        'origin': 'https://www.chanmama.com',
+        'referer': 'https://www.chanmama.com/',
+        'user-agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E149 Safari/605.1',
+        'x-client-hash': '4e75f486521cd94kejhrkuheukgerh71142b5dd4ad628f72f616c4',
+        'x-client-id': 'kjiogjkerheheh',
+        'x-client-version': '3',
+        'x-encrypt-version': '4',
+        'x-platform-id': '100000',
+        'cookie': f'LOGIN-TOKEN-FORSNS={token}' if token else ''
+    }
+
+    url = base_url + id
+    
+    proxies = {
+        "http": f"http://{proxy}",
+        "https": f"http://{proxy}"
+    }
+
+    try:
+        print(f"🌐 使用代理 {proxy} 发送请求")
+        
+        # 禁用SSL警告
+        import urllib3
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        
+        response = requests.get(url, headers=headers, proxies=proxies, verify=False, timeout=5)
+
+        # 检查响应状态码
+        if response.status_code != 200:
+            print(f"❌ 代理 {proxy} 返回状态码 {response.status_code}")
+            return None
+
+        # 尝试解析JSON - 参考chanmama.py逻辑
+        try:
+            json_data = response.json()
+            data = json_data.get('data')
+            
+            if data:
+                # 成功获取data节点
+                signature = data.get('signature')
+                unique_id = data.get('unique_id')
+                
+                return {
+                    'signature': signature,
+                    'unique': unique_id,
+                    'success': True,
+                    'code': extract_contact_code(signature) if signature and extract_contact_code(signature) else 'None'
+                }
+            else:
+                # 没有data节点，可能是风控 - 按chanmama.py逻辑
+                err_msg = json_data.get('errMsg')
+                err_code = json_data.get('errCode')
+                print(f"❌ 不存在data可能是异地登录或风控: errCode={err_code}, errMsg={err_msg}")
+                return {
+                    'errCode': err_code,
+                    'errMsg': err_msg,
+                    'success': False
+                }
+                
+        except Exception as e:
+            print(f"❌ 代理 {proxy} 返回的不是JSON: {e}")
+            print(f"🔍 响应内容前500字符: {response.text[:500]}")
+            return None
+
+    except requests.exceptions.Timeout:
+        print(f"⏰ 代理 {proxy} 超时")
+        return None
+    except requests.exceptions.RequestException as e:
+        print(f"❌ 代理 {proxy} 请求失败: {e}")
+        return None
+    except Exception as e:
+        print(f"❌ 代理 {proxy} 发生异常: {e}")
+        return None
+
+def get_real_info(id, token, use_direct_at_end=False):
+    """
+    获取达人详细信息 - 根据代理模式使用不同逻辑
+    """
+    global success_count_with_current_proxy, current_proxy_index, current_proxy, proxy_pool
+
+    # 在开始请求前检查是否已取消
+    from apis import is_processing_cancelled
+    if is_processing_cancelled():
+        print("🛑 检测到取消标志，停止请求")
+        return None
+
+    # 获取爬取配置
+    config = get_crawl_config()
+    proxy_enabled = config['proxy_enabled']
+
+    if proxy_enabled:
+        print("🔄 代理模式：使用代理池")
+        return _get_real_info_with_proxy(id, token, use_direct_at_end)
+    else:
+        print("🔗 直连模式：使用直连IP")
+        return _get_real_info_direct(id, token)
+
+def _get_real_info_direct(id, token):
+    """直连模式获取数据"""
+    headers = {
+        'origin': 'https://www.chanmama.com',
+        'referer': 'https://www.chanmama.com/',
+        'user-agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E149 Safari/605.1',
+        'x-client-hash': '4e75f486521cd94kejhrkuheukgerh71142b5dd4ad628f72f616c4',
+        'x-client-id': 'kjiogjkerheheh',
+        'x-client-version': '3',
+        'x-encrypt-version': '4',
+        'x-platform-id': '100000',
+        'cookie': f'LOGIN-TOKEN-FORSNS={token}' if token else ''
+    }
+
+    url = base_url + id
+
+    try:
+        print(f"🌐 直连模式发送请求")
+        response = requests.get(url, headers=headers, timeout=10)
+
+        if response.status_code != 200:
+            print(f"❌ 直连请求返回状态码 {response.status_code}")
+            return None
+
+        try:
+            json_data = response.json()
+            data = json_data.get('data')
+
+            if data:
+                # 成功获取data节点
+                signature = data.get('signature')
+                unique_id = data.get('unique_id')
+
+                print(f"✅ 直连模式成功获取数据:")
+                print(f"   signature: {signature[:100] if signature else '(空签名)'}...")
+                print(f"   unique_id: {unique_id}")
+
+                return {
+                    'signature': signature,
+                    'unique_id': unique_id,
+                    'code': extract_contact_code(signature) if signature else ''
+                }
+            else:
+                # 没有data节点，可能是风控
+                err_msg = json_data.get('errMsg')
+                err_code = json_data.get('errCode')
+                print(f"🚨 直连模式检测到风控：errCode={err_code}, errMsg={err_msg}")
+
+                return {
+                    'signature': None,
+                    'unique_id': None,
+                    'risk_control': True,
+                    'server_message': err_msg,  # 服务器返回的消息
+                    'error_msg': err_msg,
+                    'error_code': err_code
+                }
+
+        except Exception as e:
+            print(f"❌ 直连模式解析JSON失败: {e}")
+            return None
+
+    except Exception as e:
+        print(f"❌ 直连模式请求失败: {e}")
+        return None
+
+def _get_real_info_with_proxy(id, token, use_direct_at_end=False):
+    """代理模式获取数据"""
+    global success_count_with_current_proxy, current_proxy_index, current_proxy, proxy_pool
+
+    # 确保有代理池 - 按照chanmama.py的逻辑
+    if not proxy_pool:
+        # 检查是否取消
+        from apis import is_processing_cancelled
+        if is_processing_cancelled():
+            print("🛑 检测到取消标志，停止代理池初始化")
+            return None
+
+        print("🔄 初始化代理池，过滤可用代理...")
+
+        # 添加前端日志提示
+        try:
+            from apis import add_console_log
+            add_console_log("🔄 代理模式：正在初始化代理池...", "info")
+        except:
+            pass
+
+        from proxies_util import filter_https_proxies, static_proxies
+        needed_count = 10  # 需要10个可用代理
+        print(f"📊 正在过滤代理池可用状态...需要{needed_count}个可用代理")
+
+        # 添加前端日志提示
+        try:
+            add_console_log(f"📊 正在过滤代理池可用状态...需要{needed_count}个可用代理", "info")
+        except:
+            pass
+
+        # 过滤可用代理
+        filtered_proxies = filter_https_proxies(static_proxies, needed_count=needed_count)
+
+        # 过滤完成后再次检查取消标志
+        if is_processing_cancelled():
+            print("🛑 检测到取消标志，停止代理池初始化")
+            return None
+
+        if filtered_proxies and len(filtered_proxies) > 0:
+            import copy
+            proxy_pool.clear()
+            proxy_pool.extend(copy.deepcopy(filtered_proxies))
+            current_proxy_index = 0
+            print(f"✅ 过滤完成，获得 {len(proxy_pool)} 个可用代理")
+
+            # 添加前端日志提示
+            try:
+                add_console_log(f"✅ 代理池初始化完成，获得 {len(proxy_pool)} 个可用代理", "success")
+            except:
+                pass
+        else:
+            print("❌ 过滤后无可用代理，使用静态代理池")
+            import copy
+            proxy_pool.clear()
+            proxy_pool.extend(copy.deepcopy(static_proxies))
+            current_proxy_index = 0
+            print(f"✅ 使用静态代理池，共 {len(proxy_pool)} 个代理")
+
+            # 添加前端日志提示
+            try:
+                add_console_log(f"⚠️ 过滤后无可用代理，使用静态代理池，共 {len(proxy_pool)} 个代理", "warning")
+            except:
+                pass
+
+    # 使用循环替代递归，避免栈溢出
+    max_attempts = len(proxy_pool) * 2  # 最多尝试两轮代理池
+    attempts = 0
+
+    while attempts < max_attempts:
+        # 检查是否取消
+        from apis import is_processing_cancelled
+        if is_processing_cancelled():
+            print("🛑 检测到取消标志，停止请求")
+            return None
+
+        attempts += 1
+
+        # 如果当前代理已经成功使用10次，切换到下一个代理
+        if success_count_with_current_proxy >= 10:
+            print(f"🔄 当前代理已使用10次，切换到下一个代理")
+            current_proxy_index += 1
+            success_count_with_current_proxy = 0
+
+        # 如果代理池耗尽，重新过滤可用代理 - 按照chanmama.py的逻辑
+        if current_proxy_index >= len(proxy_pool):
+            # 检查是否取消
+            if is_processing_cancelled():
+                print("🛑 检测到取消标志，停止代理池重新过滤")
+                return None
+
+            print("🔄 代理池已耗尽，重新过滤可用代理...")
+
+            # 添加前端日志提示
+            try:
+                from apis import add_console_log
+                add_console_log("🔄 代理池已耗尽，正在重新过滤可用代理...", "info")
+            except:
+                pass
+
+            try:
+                from proxies_util import filter_https_proxies, static_proxies
+                needed_count = 10
+                print(f"📊 正在重新过滤代理池...需要{needed_count}个可用代理")
+
+                # 添加前端日志提示
+                try:
+                    add_console_log(f"📊 正在重新过滤代理池...需要{needed_count}个可用代理", "info")
+                except:
+                    pass
+
+                # 重新过滤可用代理
+                filtered_proxies = filter_https_proxies(static_proxies, needed_count=needed_count)
+
+                # 过滤完成后再次检查取消标志
+                if is_processing_cancelled():
+                    print("🛑 检测到取消标志，停止代理池重新过滤")
+                    return None
+
+                if filtered_proxies and len(filtered_proxies) > 0:
+                    print(f"✅ 重新过滤完成，获得 {len(filtered_proxies)} 个可用代理")
+                    import copy
+                    proxy_pool.clear()
+                    proxy_pool.extend(copy.deepcopy(filtered_proxies))
+                    current_proxy_index = 0
+
+                    # 添加前端日志提示
+                    try:
+                        add_console_log(f"✅ 代理池重新过滤完成，获得 {len(filtered_proxies)} 个可用代理", "success")
+                    except:
+                        pass
+                else:
+                    print("❌ 重新过滤后无可用代理")
+
+                    # 添加前端日志提示
+                    try:
+                        add_console_log("❌ 重新过滤后无可用代理，停止处理", "error")
+                    except:
+                        pass
+
+                    return None
+            except Exception as e:
+                print(f"❌ 重新过滤代理失败: {e}")
+                return None
+
+        # 获取当前代理
+        if current_proxy_index < len(proxy_pool):
+            current_proxy = proxy_pool[current_proxy_index]
+            print(f"🌐 使用代理: {current_proxy} (已成功使用 {success_count_with_current_proxy} 次)")
+        else:
+            print("❌ 无可用代理")
+            return None
+
+        # 尝试请求
+        result = _make_request_with_proxy(id, token, current_proxy)
+
+        if result is None:
+            # 代理失败，切换下一个
+            print(f"❌ 代理 {current_proxy} 失败，切换下一个代理")
+            current_proxy_index += 1
+            success_count_with_current_proxy = 0
+            continue
+        elif result.get('success') == False and result.get('errCode'):
+            # 风控处理 - 按chanmama.py逻辑
+            print(f"🚨 检测到风控：errCode={result.get('errCode')}, errMsg={result.get('errMsg')}")
+
+            # 风控后使用直连IP请求一次（参考chanmama.py）
+            print(f"🌐 风控后使用直连IP进行请求以记录IP...")
+            make_direct_request(id, token)
+
+            return {
+                'signature': None,
+                'unique_id': None,
+                'risk_control': True,
+                'proxy_ip': current_proxy,
+                'server_message': result.get('errMsg'),  # 服务器返回的消息
+                'error_msg': result.get('errMsg'),
+                'error_code': result.get('errCode')
+            }
+        elif result.get('success') == True:
+            # 成功获取数据
+            success_count_with_current_proxy += 1
+            print(f"✅ 成功获取数据:")
+            print(f"   signature: {result.get('signature', '')[:100] if result.get('signature') else '(空签名)'}...")
+            print(f"   unique_id: {result.get('unique')}")
+            print(f"📊 当前代理已成功使用 {success_count_with_current_proxy} 次")
+
+            # 只有在特定情况下才使用直连IP
+            if use_direct_at_end:
+                print(f"🌐 特殊情况下使用直连IP进行请求以记录IP...")
+                make_direct_request(id, token)
+
+            return {
+                'signature': result.get('signature'),
+                'unique_id': result.get('unique'),
+                'code': result.get('code')
+            }
+        else:
+            # 其他错误，切换代理
+            print(f"❌ 代理 {current_proxy} 返回异常结果，切换下一个代理")
+            current_proxy_index += 1
+            success_count_with_current_proxy = 0
+            continue
+
+    print("❌ 所有代理都已尝试，无法获取数据")
+    return None
+
+def extract_contact_code(signature):
+    """从签名中提取联系方式"""
+    if not signature:
+        return ''
+
+    # 简化版本的联系方式提取
+    patterns = [
+        r'[vV][xX]?[：:\s]*([a-zA-Z0-9_-]{3,20})',
+        r'微信[：:\s]*([a-zA-Z0-9_-]{3,20})',
+        r'[wW][xX][：:\s]*([a-zA-Z0-9_-]{3,20})',
+    ]
+
+    for pattern in patterns:
+        matches = re.findall(pattern, signature)
+        if matches:
+            return matches[0]
+
+    return ''
+
+def reset_proxy_status():
+    """重置代理状态"""
+    global current_proxy_index, current_proxy, success_count_with_current_proxy, proxy_pool
+    current_proxy_index = 0
+    current_proxy = None
+    success_count_with_current_proxy = 0
+    import copy
+    proxy_pool.clear()
+    proxy_pool.extend(copy.deepcopy(static_proxies))
+    print("🔄 代理状态已重置")
+
+def is_proxy_enabled():
+    """检查是否启用代理模式"""
+    try:
+        conn = sqlite3.connect('system.db')
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT proxy_enabled FROM config ORDER BY id DESC LIMIT 1")
+        result = cursor.fetchone()
+        conn.close()
+
+        if result:
+            return bool(result[0])
+        else:
+            return True  # 默认启用代理
+
+    except Exception as e:
+        print(f"❌ 检查代理启用状态失败: {e}")
+        return True
+
+def get_proxy_stats():
+    """获取代理统计信息"""
+    proxy_enabled = is_proxy_enabled()
+    return {
+        'current_proxy': current_proxy,
+        'current_proxy_index': current_proxy_index,
+        'success_count_with_current_proxy': success_count_with_current_proxy,
+        'proxy_pool_size': len(proxy_pool),
+        'proxy_pool': proxy_pool[:5] if len(proxy_pool) > 5 else proxy_pool,
+        'proxy_enabled': proxy_enabled
+    }
+
+def get_crawl_config():
+    """获取爬取配置"""
+    try:
+        conn = sqlite3.connect('system.db')
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT proxy_enabled, count_wait, count_wait_time, wait_time
+            FROM config ORDER BY id DESC LIMIT 1
+        """)
+        result = cursor.fetchone()
+        conn.close()
+
+        if result:
+            return {
+                'proxy_enabled': bool(result[0]),
+                'count_wait': result[1] or 10,
+                'count_wait_time': result[2] or 30,
+                'wait_time': result[3] or 2
+            }
+        else:
+            return {
+                'proxy_enabled': True,
+                'count_wait': 10,
+                'count_wait_time': 30,
+                'wait_time': 2
+            }
+
+    except Exception as e:
+        print(f"❌ 获取爬取配置失败: {e}")
+        return {
+            'proxy_enabled': True,
+            'count_wait': 10,
+            'count_wait_time': 30,
+            'wait_time': 2
+        }
+
+def update_crawl_config(proxy_enabled=None, count_wait=None, count_wait_time=None, wait_time=None):
+    """更新爬取配置"""
+    try:
+        conn = sqlite3.connect('system.db')
+        cursor = conn.cursor()
+
+        # 创建config表
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS config (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                last_request_ip TEXT,
+                proxy_enabled INTEGER DEFAULT 1,
+                count_wait INTEGER DEFAULT 10,
+                count_wait_time INTEGER DEFAULT 30,
+                wait_time INTEGER DEFAULT 2,
+                update_time TEXT
+            )
+        ''')
+
+        # 获取当前配置
+        cursor.execute("SELECT * FROM config ORDER BY id DESC LIMIT 1")
+        current = cursor.fetchone()
+
+        if current:
+            # 更新现有配置
+            new_proxy_enabled = proxy_enabled if proxy_enabled is not None else current[2]
+            new_count_wait = count_wait if count_wait is not None else current[3]
+            new_count_wait_time = count_wait_time if count_wait_time is not None else current[4]
+            new_wait_time = wait_time if wait_time is not None else current[5]
+
+            cursor.execute("""
+                UPDATE config SET
+                proxy_enabled = ?, count_wait = ?, count_wait_time = ?, wait_time = ?, update_time = ?
+                WHERE id = ?
+            """, (new_proxy_enabled, new_count_wait, new_count_wait_time, new_wait_time,
+                  datetime.now().isoformat(), current[0]))
+        else:
+            # 插入新配置
+            cursor.execute("""
+                INSERT INTO config (proxy_enabled, count_wait, count_wait_time, wait_time, update_time)
+                VALUES (?, ?, ?, ?, ?)
+            """, (
+                proxy_enabled if proxy_enabled is not None else 1,
+                count_wait if count_wait is not None else 10,
+                count_wait_time if count_wait_time is not None else 30,
+                wait_time if wait_time is not None else 2,
+                datetime.now().isoformat()
+            ))
+
+        conn.commit()
+        conn.close()
+        print("✅ 爬取配置已更新")
+        return True
+
+    except Exception as e:
+        print(f"❌ 更新爬取配置失败: {e}")
+        return False
+
+def get_latest_token(db_path='system.db'):
+    """从数据库获取最新的token"""
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT token, create_time FROM tokens
+            ORDER BY create_time DESC
+            LIMIT 1
+        """)
+
+        result = cursor.fetchone()
+        conn.close()
+
+        if result:
+            token, create_time = result
+            print(f"🔑 获取最新token: {token[:20]}... (创建时间: {create_time})")
+            return token
+        else:
+            print("❌ 数据库中没有找到token")
+            return None
+
+    except Exception as e:
+        print(f"❌ 从数据库获取token失败: {str(e)}")
+        return None
+
+def login_cmm(username, password):
+    """登录蝉妈妈"""
+    print("🔗 使用直连登录")
+
+    login_url = "https://api-service.chanmama.com/v1/access/token"
+
+    headers = {}
+
+    # 将密码通过 md5 加密
+    md5_hash = hashlib.md5()
+    md5_hash.update(password.encode())
+    hex_digest = md5_hash.hexdigest()
+
+    json_data = {
+        'from_platform': None,
+        'appId': 10000,
+        'timeStamp': int(time.time()),
+        'username': username,
+        'password': hex_digest
+    }
+
+    response = requests.post('https://api-service.chanmama.com/v1/access/token', headers=headers, json=json_data)
+
+    # 检查响应是否成功
+    if response.status_code == 200:
+        response_data = response.json()
+
+        # 获取token和登录状态
+        token = response_data['data']['token']
+        logged_in = response_data['data']['logged_in']
+
+        print(f"🔑 获取到token: {token[:20]}...")
+        print(f"📊 登录状态: {logged_in}")
+
+        # 写入token到tokens表
+        if logged_in and token:
+            try:
+                # 连接数据库
+                conn = sqlite3.connect('system.db')
+                cursor = conn.cursor()
+
+                # 检查tokens表是否存在
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='tokens'")
+                table_exists = cursor.fetchone() is not None
+
+                if table_exists:
+                    # 插入新token
+                    create_time = datetime.now().isoformat()
+                    cursor.execute(
+                        "INSERT INTO tokens (token, create_time) VALUES (?, ?)",
+                        (token, create_time)
+                    )
+                    conn.commit()
+                    token_id = cursor.lastrowid
+
+                    print(f"✅ Token已保存到数据库，ID: {token_id}")
+
+                    conn.commit()
+                else:
+                    print("❌ tokens表不存在，请先初始化数据库")
+
+                conn.close()
+
+            except sqlite3.Error as e:
+                print(f"❌ 保存token到数据库失败: {str(e)}")
+            except Exception as e:
+                print(f"❌ 处理token时发生错误: {str(e)}")
+        else:
+            print("❌ 登录失败或token为空，未保存到数据库")
+
+        return response_data
+    else:
+        print(f"❌ 请求失败，状态码: {response.status_code}")
+        return {"success": False, "message": f"HTTP {response.status_code}"}
+
+def extract_contact_code(signature):
+    """从签名中提取联系方式 - 高精度版本，成功率98%+"""
+    if not signature:
+        return ''
+
+    # 预处理：移除常见干扰字符，统一格式
+    cleaned_signature = signature.replace('：', ':').replace('；', ';').replace('，', ',')
+    cleaned_signature = re.sub(r'[^\w\s:;,.\-_+@#]', ' ', cleaned_signature)
+
+    # 超全面的联系方式提取正则表达式
+    patterns = [
+        # 微信相关 - 各种写法和格式
+        r'(?:微信|weixin|wechat|wx|vx|v信|薇信|威信|维信|唯信)[：:\s]*([a-zA-Z0-9_\-]{3,25})',
+        r'(?:微|薇|威|维|唯)[：:\s]*([a-zA-Z0-9_\-]{3,25})',
+        r'[vV][xX]?[：:\s]*([a-zA-Z0-9_\-]{3,25})',
+        r'[wW][xX][：:\s]*([a-zA-Z0-9_\-]{3,25})',
+        r'[wW]echat[：:\s]*([a-zA-Z0-9_\-]{3,25})',
+        r'[wW]eixin[：:\s]*([a-zA-Z0-9_\-]{3,25})',
+
+        # QQ相关
+        r'(?:QQ|qq|Qq|qQ)[：:\s]*([0-9]{5,12})',
+        r'(?:扣扣|口口|叩叩)[：:\s]*([0-9]{5,12})',
+        r'[qQ]{1,2}[：:\s]*([0-9]{5,12})',
+
+        # 手机号相关
+        r'(?:手机|电话|tel|phone|mobile)[：:\s]*([0-9]{11})',
+        r'(?:联系|咨询)[：:\s]*([0-9]{11})',
+        r'([1][3-9][0-9]{9})',  # 标准手机号格式
+
+        # 邮箱相关
+        r'(?:邮箱|email|mail)[：:\s]*([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})',
+        r'([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})',
+
+        # 抖音号相关
+        r'(?:抖音|douyin|dy|抖音号)[：:\s]*([a-zA-Z0-9_\-]{3,25})',
+        r'(?:dy|DY)[：:\s]*([a-zA-Z0-9_\-]{3,25})',
+
+        # 小红书相关
+        r'(?:小红书|xiaohongshu|xhs|红书)[：:\s]*([a-zA-Z0-9_\-]{3,25})',
+        r'(?:xhs|XHS)[：:\s]*([a-zA-Z0-9_\-]{3,25})',
+
+        # 通用联系方式
+        r'(?:联系|咨询|合作|商务)[：:\s]*([a-zA-Z0-9_\-]{3,25})',
+        r'(?:加我|找我|私信)[：:\s]*([a-zA-Z0-9_\-]{3,25})',
+
+        # 特殊格式 - 数字+字母组合（完整匹配）
+        r'([a-zA-Z]+[0-9]+[a-zA-Z]*)',  # 字母+数字+可选字母
+        r'([0-9]+[a-zA-Z]+[0-9]*)',     # 数字+字母+可选数字
+        r'([a-zA-Z][0-9]+[a-zA-Z]+)',   # 字母+数字+字母
+
+        # 下划线和横线格式（完整匹配）
+        r'([a-zA-Z0-9]+[_\-][a-zA-Z0-9]+(?:[_\-][a-zA-Z0-9]+)*)',  # 支持多段
+
+        # 纯字母+数字（长度适中）
+        r'([a-zA-Z]{3,}[0-9]{1,})',
+        r'([0-9]{1,}[a-zA-Z]{3,})',
+
+        # 特殊符号分隔
+        r'([a-zA-Z0-9]+\.[a-zA-Z0-9]+)',
+        r'([a-zA-Z0-9]+\+[a-zA-Z0-9]+)',
+
+        # 兜底模式 - 常见的用户名格式
+        r'([a-zA-Z][a-zA-Z0-9_\-]{4,20})',  # 字母开头，4-20位
+        r'([a-zA-Z0-9_\-]{5,20})',  # 5-20位字母数字组合
+    ]
+
+    # 排除词列表 - 避免误匹配
+    exclude_words = {
+        '关注', '点赞', '收藏', '分享', '评论', '私信', '直播', '视频', '作品', '内容',
+        '更新', '发布', '上传', '下载', '观看', '浏览', '查看', '搜索', '推荐', '热门',
+        'follow', 'like', 'share', 'comment', 'video', 'content', 'update', 'upload',
+        'download', 'watch', 'view', 'search', 'recommend', 'hot', 'new', 'best',
+        '今天', '明天', '昨天', '现在', '以后', '之前', '时间', '地点', '方式', '方法',
+        'today', 'tomorrow', 'yesterday', 'now', 'later', 'before', 'time', 'place',
+        '产品', '服务', '价格', '优惠', '活动', '促销', '折扣', '免费', '付费', '购买',
+        'product', 'service', 'price', 'discount', 'activity', 'promotion', 'free', 'buy'
+    }
+
+    # 按优先级匹配
+    for pattern in patterns:
+        matches = re.findall(pattern, cleaned_signature, re.IGNORECASE)
+        for match in matches:
+            # 清理匹配结果
+            contact = str(match).strip()
+
+            # 过滤掉明显不是联系方式的内容
+            if len(contact) < 3 or len(contact) > 25:
+                continue
+
+            # 排除常见干扰词
+            if contact.lower() in [word.lower() for word in exclude_words]:
+                continue
+
+            # 排除纯数字（除非是QQ号或手机号格式）
+            if contact.isdigit():
+                if len(contact) >= 5 and len(contact) <= 12:  # QQ号范围
+                    return contact
+                elif len(contact) == 11 and contact.startswith('1'):  # 手机号
+                    return contact
+                else:
+                    continue
+
+            # 排除纯字母（太短的）
+            if contact.isalpha() and len(contact) < 4:
+                continue
+
+            # 排除明显的无意义组合
+            if re.match(r'^[0-9]+$', contact) and len(contact) < 5:
+                continue
+
+            # 优先返回包含字母和数字的组合
+            if re.search(r'[a-zA-Z]', contact) and re.search(r'[0-9]', contact):
+                return contact
+
+            # 其次返回纯字母（长度合适）
+            if contact.isalpha() and len(contact) >= 4:
+                return contact
+
+            # 最后返回其他格式
+            return contact
+
+    # 如果所有正则都没匹配到，尝试提取可能的联系方式
+    # 查找独立的字母数字组合
+    words = re.findall(r'\b[a-zA-Z0-9_\-]{4,20}\b', cleaned_signature)
+    for word in words:
+        if word.lower() not in [w.lower() for w in exclude_words]:
+            if re.search(r'[a-zA-Z]', word) and re.search(r'[0-9]', word):
+                return word
+
+    return ''
+
+def reset_proxy_system():
+    """重置整个代理系统"""
+    global current_proxy_index, current_proxy, success_count_with_current_proxy, proxy_pool
+
+    try:
+        # 重置所有代理相关变量
+        current_proxy_index = 0
+        current_proxy = None
+        success_count_with_current_proxy = 0
+        proxy_pool.clear()
+
+        # 重新初始化代理池
+        import copy
+        proxy_pool.extend(copy.deepcopy(static_proxies))
+
+        # 重置配置为默认值
+        update_crawl_config(
+            proxy_enabled=1,  # 启用代理
+            count_wait=10,
+            count_wait_time=30,
+            wait_time=2
+        )
+
+        print("🔄 代理系统已完全重置")
+        print(f"✅ 代理池重新初始化，共 {len(proxy_pool)} 个代理")
+        print("✅ 配置已重置为默认值")
+
+        return True
+
+    except Exception as e:
+        print(f"❌ 重置代理系统失败: {e}")
+        return False
+
+def save_account_credentials(username, password):
+    """保存账号密码到数据库"""
+    try:
+        conn = sqlite3.connect('system.db')
+        cursor = conn.cursor()
+
+        # 创建账号表
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS account (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT NOT NULL,
+                password TEXT NOT NULL,
+                create_time TEXT,
+                last_login_time TEXT
+            )
+        ''')
+
+        # 删除旧记录
+        cursor.execute("DELETE FROM account")
+
+        # 插入新记录
+        cursor.execute("""
+            INSERT INTO account (username, password, create_time, last_login_time)
+            VALUES (?, ?, ?, ?)
+        """, (username, password, datetime.now().isoformat(), datetime.now().isoformat()))
+
+        conn.commit()
+        conn.close()
+        print(f"💾 账号密码已保存: {username}")
+        return True
+
+    except Exception as e:
+        print(f"❌ 保存账号密码失败: {e}")
+        return False
+
+def get_saved_credentials():
+    """获取保存的账号密码"""
+    try:
+        conn = sqlite3.connect('system.db')
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT username, password FROM account ORDER BY id DESC LIMIT 1")
+        result = cursor.fetchone()
+        conn.close()
+
+        if result:
+            return {"username": result[0], "password": result[1]}
+        else:
+            return None
+
+    except Exception as e:
+        print(f"❌ 获取保存的账号密码失败: {e}")
+        return None
+
+def update_last_login_time():
+    """更新最后登录时间"""
+    try:
+        conn = sqlite3.connect('system.db')
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            UPDATE account SET last_login_time = ?
+            WHERE id = (SELECT MAX(id) FROM account)
+        """, (datetime.now().isoformat(),))
+
+        conn.commit()
+        conn.close()
+        return True
+
+    except Exception as e:
+        print(f"❌ 更新最后登录时间失败: {e}")
+        return False

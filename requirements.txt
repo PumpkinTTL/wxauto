@@ -1,0 +1,23 @@
+# 办公辅助系统 - 依赖包列表
+# 核心依赖（必需）
+pywebview>=4.0.0        # 主界面框架
+openpyxl>=3.0.0         # Excel文件处理
+requests>=2.25.0        # HTTP请求库
+
+# 微信自动化功能（项目中实际使用）
+wxauto>=3.0.0           # 微信自动化库
+uiautomation>=2.0.0     # UI自动化库
+
+# 图像处理功能（项目中实际使用）
+pyautogui>=0.9.0        # 图像识别和自动化
+opencv-python>=4.5.0    # 图像处理
+Pillow>=8.0.0           # 图像处理
+numpy>=1.20.0           # 数值计算
+
+# 定时任务管理
+APScheduler>=3.11.0     # 定时任务调度器
+SQLAlchemy>=2.0.0       # 数据库ORM（APScheduler依赖）
+win10toast>=0.9         # Windows系统通知
+
+# 开发和打包工具
+pyinstaller>=5.0.0      # 打包工具

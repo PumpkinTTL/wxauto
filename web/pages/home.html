@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>首页概览</title>
+    
+    <!-- Element Plus CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <!-- Element Plus Icons -->
+    <script src="//unpkg.com/@element-plus/icons-vue"></script>
+    <!-- Animate.css -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background: #f8fafc;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+
+        /* 子界面元素动画 */
+        @keyframes smoothSlideIn {
+            0% {
+                transform: translateY(30px) scale(0.95);
+                opacity: 0;
+            }
+            100% {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
+        }
+
+        .animate-bounce-in {
+            animation: smoothSlideIn 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .animate-delay-1 { animation-delay: 0.15s; }
+        .animate-delay-2 { animation-delay: 0.3s; }
+        .animate-delay-3 { animation-delay: 0.45s; }
+        .animate-delay-4 { animation-delay: 0.6s; }
+
+        .welcome-card {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(59, 130, 246, 0.3);
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+        }
+    </style>
+</head>
+<body>
+    <div id="app" style="padding: 24px;">
+        <!-- 欢迎卡片 -->
+        <div class="welcome-card animate-bounce-in">
+            <div style="font-size: 48px; margin-bottom: 16px;">🎯</div>
+            <h1 style="margin: 0 0 8px 0; font-size: 28px; font-weight: 700;">欢迎使用管理系统</h1>
+            <p style="margin: 0; font-size: 16px; opacity: 0.9;">现代化的后台管理界面，让工作更高效</p>
+        </div>
+
+        <!-- 统计卡片 -->
+        <el-row :gutter="24">
+            <el-col :span="6">
+                <div class="stat-card animate-bounce-in animate-delay-1">
+                    <el-statistic title="总用户数" :value="userCount" suffix="人">
+                        <template #prefix>
+                            <el-icon size="24" style="color: #3b82f6;"><User /></el-icon>
+                        </template>
+                    </el-statistic>
+                </div>
+            </el-col>
+
+            <el-col :span="6">
+                <div class="stat-card animate-bounce-in animate-delay-2">
+                    <el-statistic title="今日访问" :value="visitCount" suffix="次">
+                        <template #prefix>
+                            <el-icon size="24" style="color: #10b981;"><View /></el-icon>
+                        </template>
+                    </el-statistic>
+                </div>
+            </el-col>
+
+            <el-col :span="6">
+                <div class="stat-card animate-bounce-in animate-delay-3">
+                    <el-statistic title="数据处理" :value="processRate" suffix="%">
+                        <template #prefix>
+                            <el-icon size="24" style="color: #f59e0b;"><DataAnalysis /></el-icon>
+                        </template>
+                    </el-statistic>
+                </div>
+            </el-col>
+
+            <el-col :span="6">
+                <div class="stat-card animate-bounce-in animate-delay-4">
+                    <el-statistic title="系统状态" value="正常">
+                        <template #prefix>
+                            <el-icon size="24" style="color: #10b981;"><CircleCheck /></el-icon>
+                        </template>
+                    </el-statistic>
+                </div>
+            </el-col>
+        </el-row>
+    </div>
+
+    <!-- Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Element Plus -->
+    <script src="https://unpkg.com/element-plus/dist/index.full.js"></script>
+    <!-- Element Plus Icons -->
+    <script src="https://unpkg.com/@element-plus/icons-vue/dist/index.iife.js"></script>
+
+    <script>
+        const { createApp, ref, onMounted } = Vue;
+        const { ElMessage } = ElementPlus;
+
+        const app = createApp({
+            setup() {
+                const stats = ref([
+                    { title: '总用户数', value: '1,234', icon: 'User', color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', trend: 'up', change: '+12%' },
+                    { title: '今日访问', value: '567', icon: 'View', color: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', trend: 'up', change: '+8%' },
+                    { title: '数据处理', value: '89%', icon: 'DataAnalysis', color: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', trend: 'down', change: '-2%' },
+                    { title: '系统状态', value: '正常', icon: 'CircleCheck', color: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', trend: 'up', change: '稳定' }
+                ]);
+
+                const quickActions = ref([
+                    { name: '数据导入', icon: 'Upload', color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', desc: '批量导入数据' },
+                    { name: '报表生成', icon: 'Document', color: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', desc: '生成统计报表' },
+                    { name: '系统设置', icon: 'Setting', color: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', desc: '配置系统参数' },
+                    { name: '用户管理', icon: 'User', color: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', desc: '管理用户权限' },
+                    { name: '数据备份', icon: 'Folder', color: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', desc: '备份重要数据' },
+                    { name: '日志查看', icon: 'View', color: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)', desc: '查看系统日志' }
+                ]);
+
+                const systemMonitor = ref([
+                    { name: 'CPU 使用率', value: 45, status: 'success' },
+                    { name: '内存使用率', value: 67, status: 'warning' },
+                    { name: '磁盘使用率', value: 32, status: 'success' },
+                    { name: '网络带宽', value: 78, status: 'exception' }
+                ]);
+
+                const recentActivities = ref([
+                    { time: '10:30', content: '用户登录系统', icon: 'User', color: '#667eea' },
+                    { time: '09:15', content: '数据同步完成', icon: 'Refresh', color: '#43e97b' },
+                    { time: '08:45', content: '系统备份成功', icon: 'Folder', color: '#4facfe' },
+                    { time: '昨天 18:20', content: '生成月度报表', icon: 'Document', color: '#f093fb' }
+                ]);
+                
+                const handleQuickAction = (action) => {
+                    ElMessage.success(`执行操作：${action.name}`);
+                };
+                
+                // 模拟实时数据更新
+                onMounted(() => {
+                    setInterval(() => {
+                        // 更新统计数据
+                        stats.value[0].value = (parseInt(stats.value[0].value.replace(',', '')) + Math.floor(Math.random() * 3)).toLocaleString();
+                        stats.value[1].value = (parseInt(stats.value[1].value) + Math.floor(Math.random() * 5)).toString();
+
+                        // 更新系统监控
+                        systemMonitor.value.forEach(item => {
+                            item.value = Math.max(10, Math.min(95, item.value + (Math.random() - 0.5) * 10));
+                            if (item.value < 50) item.status = 'success';
+                            else if (item.value < 80) item.status = 'warning';
+                            else item.status = 'exception';
+                        });
+                    }, 5000);
+                });
+
+                return {
+                    userCount: ref(1234),
+                    visitCount: ref(567),
+                    processRate: ref(89)
+                };
+            }
+        });
+
+        // 注册所有图标
+        Object.keys(ElementPlusIconsVue).forEach(key => {
+            app.component(key, ElementPlusIconsVue[key]);
+        });
+
+        app.use(ElementPlus).mount('#app');
+    </script>
+</body>
+</html>

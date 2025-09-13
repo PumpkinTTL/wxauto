@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>后台管理系统</title>
+
+     <!-- Element Plus CSS -->
+     <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+     <!-- Element Plus Icons -->
+     <script src="//cdn.jsdelivr.net/npm/@element-plus/icons-vue"></script>
+     <!-- Animate.css -->
+     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        .fade-enter-active, .fade-leave-active {
+            transition: opacity 0.3s ease;
+        }
+
+        .fade-enter-from, .fade-leave-to {
+            opacity: 0;
+        }
+
+        /* 统一的容器样式 */
+        .el-container {
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* 侧边栏精致样式 */
+        .el-aside {
+            background: #ffffff;
+            border-right: 1px solid #e5e7eb;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Logo区域精致样式 */
+        .logo-header {
+            background: #ffffff;
+            color: #1e293b;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 28px;
+            height: 28px;
+            background: #3b82f6;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 菜单精致样式 */
+        .el-menu {
+            background: transparent !important;
+            border: none !important;
+            padding: 12px 0;
+        }
+
+        .el-menu-item, .el-sub-menu__title {
+            margin: 4px 12px;
+            border-radius: 8px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            color: #1e293b;
+            background: white;
+            border: 1px solid #e2e8f0;
+            position: relative;
+            overflow: hidden;
+            height: 40px;
+            line-height: 40px;
+            font-size: 14px;
+        }
+
+        .el-menu-item::before, .el-sub-menu__title::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .el-menu-item:hover::before, .el-sub-menu__title:hover::before {
+            left: 100%;
+        }
+
+        .el-menu-item:hover, .el-sub-menu__title:hover {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+            color: white !important;
+            border-color: #3b82f6;
+            transform: translateX(2px);
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+        }
+
+        .el-menu-item.is-active {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+            color: white !important;
+            font-weight: 600;
+            box-shadow: 0 2px 12px rgba(59, 130, 246, 0.3);
+            border: 1px solid #3b82f6;
+        }
+
+        .el-sub-menu.is-active .el-sub-menu__title {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+            color: white !important;
+            font-weight: 600;
+            border: 1px solid #3b82f6;
+        }
+
+        /* 顶部标题栏精致样式 */
+        .header-container {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border-bottom: 1px solid #e2e8f0;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            position: relative;
+        }
+
+        .header-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899, #f59e0b);
+        }
+
+        /* 按钮精致样式 */
+        .header-btn {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid #e2e8f0;
+            background: white;
+            color: #64748b;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header-btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%);
+            transition: all 0.3s ease;
+            transform: translate(-50%, -50%);
+        }
+
+        .header-btn:hover::before {
+            width: 100px;
+            height: 100px;
+        }
+
+        .header-btn:hover {
+            background: #f8fafc;
+            border-color: #3b82f6;
+            color: #3b82f6;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.15);
+        }
+
+
+
+        /* iframe容器 */
+        .iframe-container {
+            background: #EFEDED;
+            overflow: hidden;
+        }
+
+        .iframe-container iframe {
+            border: none;
+        }
+
+        /* 主内容区域 */
+        .el-main {
+            padding: 0;
+            overflow: hidden;
+            background: #f9fafb;
+        }
+
+        /* 动画效果 */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* 启动加载界面 - 简洁粉色系 */
+        #startup-loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 50%, #f3e8ff 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            transition: all 0.8s ease-out;
+            overflow: hidden;
+        }
+
+        #startup-loading.fade-out {
+            opacity: 0;
+            transform: scale(0.95) rotateY(15deg);
+            filter: blur(10px);
+            pointer-events: none;
+        }
+
+        .startup-logo {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 32px rgba(236, 72, 153, 0.2);
+            animation: logoFloat 2s ease-in-out infinite;
+            position: relative;
+        }
+
+        .startup-title {
+            color: #be185d;
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            animation: fadeInUp 0.8s ease-out;
+            letter-spacing: 0.5px;
+        }
+
+        .startup-subtitle {
+            color: #9333ea;
+            font-size: 14px;
+            margin-bottom: 40px;
+            animation: fadeInUp 0.8s ease-out 0.2s both;
+            font-weight: 400;
+            letter-spacing: 1px;
+        }
+
+        .startup-progress {
+            width: 240px;
+            height: 4px;
+            background: rgba(190, 24, 93, 0.2);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .startup-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #ec4899, #f472b6);
+            border-radius: 8px;
+            width: 0%;
+            transition: width 0.6s ease-out;
+            position: relative;
+        }
+
+        .startup-status {
+            color: #be185d;
+            font-size: 13px;
+            text-align: center;
+            font-weight: 500;
+            animation: fadeInOut 2s ease-in-out infinite;
+        }
+
+        /* 简洁动画效果 */
+        @keyframes logoFloat {
+            0%, 100% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-8px);
+            }
+        }
+
+        @keyframes fadeInUp {
+            0% {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            100% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeInOut {
+            0%, 100% {
+                opacity: 0.7;
+            }
+            50% {
+                opacity: 1;
+            }
+        }
+
+        /* 隐藏主界面直到加载完成 */
+        #app {
+            opacity: 0;
+            transition: opacity 0.5s ease-in;
+        }
+
+        #app.loaded {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <!-- 启动加载界面 -->
+    <div id="startup-loading">
+        <div class="startup-logo">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
+                <path fill="#ec4899"
+                      d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z">
+                    <animateTransform attributeName="transform" type="scale"
+                                    values="1;1.05;1" dur="2s" repeatCount="indefinite"/>
+                </path>
+            </svg>
+        </div>
+        <div class="startup-title" id="startup-title">智能工作台</div>
+        <div class="startup-subtitle" id="startup-subtitle">Smart Workspace</div>
+        <div class="startup-progress">
+            <div class="startup-progress-bar" id="progress-bar"></div>
+        </div>
+        <div class="startup-status" id="startup-status">正在初始化系统...</div>
+    </div>
+
+    <div id="app">
+        <el-container style="height: 100vh;">
+            <!-- 左侧导航栏 -->
+            <el-aside width="220px">
+                <el-container direction="vertical" style="height: 100%;">
+                    <!-- Logo 区域 -->
+                    <el-header height="60px" class="logo-header">
+                        <div class="logo-content">
+                            <div class="logo-icon">
+                                <el-icon size="16" color="white"><Monitor /></el-icon>
+                            </div>
+                            <div style="text-align: left;">
+                                <div style="font-size: 16px; font-weight: 600; line-height: 1.2;">
+                                    智能办公系统
+                                </div>
+                                <div style="font-size: 10px; opacity: 0.7; font-weight: 400;">
+                                    Smart office System
+                                </div>
+                            </div>
+                        </div>
+                    </el-header>
+
+                    <!-- 导航菜单 -->
+                    <el-main style="padding: 0;">
+                        <el-menu
+                            :default-active="activeMenu"
+                            @select="handleMenuSelect"
+                            unique-opened
+                            style="border-right: none;"
+                        >
+                            <el-menu-item index="home">
+                                <el-icon><House /></el-icon>
+                                <span>首页</span>
+                            </el-menu-item>
+
+                            <el-sub-menu index="chanmama">
+                                <template #title>
+                                    <el-icon><Notebook /></el-icon>
+                                    <span>蝉妈妈</span>
+                                </template>
+                                <el-menu-item index="chanmama-home">
+                                    <el-icon><Connection /></el-icon>
+                                    <span>蝉妈妈主页</span>
+                                </el-menu-item>
+                                <el-menu-item index="chanmama-talent">
+                                    <el-icon><User /></el-icon>
+                                    <span>达人数据提取</span>
+                                </el-menu-item>
+                            </el-sub-menu>
+
+                            <!-- 微信自动化暂时隐藏 -->
+                            <!-- <el-sub-menu index="wechat">
+                                <template #title>
+                                    <el-icon><ChatDotRound /></el-icon>
+                                    <span>微信自动化</span>
+                                </template>
+                                <el-menu-item index="wechat-automation">
+                                    <el-icon><Grid /></el-icon>
+                                    <span>功能中心</span>
+                                </el-menu-item>
+                                <el-menu-item index="wechat-auto">
+                                    <el-icon><Robot /></el-icon>
+                                    <span>批量添加好友</span>
+                                </el-menu-item>
+                                <el-menu-item index="wechat-phrases">
+                                    <el-icon><ChatLineRound /></el-icon>
+                                    <span>常用语管理</span>
+                                </el-menu-item>
+                            </el-sub-menu> -->
+
+                            <el-sub-menu index="follow-automation">
+                                <template #title>
+                                    <el-icon><VideoPlay /></el-icon>
+                                    <span>跟播自动化</span>
+                                </template>
+                                <el-menu-item index="follow-wechat">
+                                    <el-icon><ChatDotRound /></el-icon>
+                                    <span>微信视频号</span>
+                                </el-menu-item>
+                                <!-- 暂时隐藏抖音和快手功能，还未开发完成 -->
+                                <!-- <el-menu-item index="follow-douyin">
+                                    <el-icon><VideoCamera /></el-icon>
+                                    <span>抖音</span>
+                                </el-menu-item>
+                                <el-menu-item index="follow-kuaishou">
+                                    <el-icon><Film /></el-icon>
+                                    <span>快手</span>
+                                </el-menu-item> -->
+                                <el-menu-item index="follow-speech">
+                                    <el-icon><ChatLineRound /></el-icon>
+                                    <span>话术管理</span>
+                                </el-menu-item>
+                                <el-menu-item index="product-management">
+                                    <el-icon><Goods /></el-icon>
+                                    <span>商品管理</span>
+                                </el-menu-item>
+                                <el-menu-item index="image-management">
+                                    <el-icon><Picture /></el-icon>
+                                    <span>图片管理</span>
+                                </el-menu-item>
+                            </el-sub-menu>
+
+                            <el-sub-menu index="bigdata">
+                                <template #title>
+                                    <el-icon><ChatDotRound /></el-icon>
+                                    <span>大数据聚合平台</span>
+                                </template>
+                                <el-menu-item index="big-data-nav">
+                                    <el-icon><Robot /></el-icon>
+                                    <span>大数据导航</span>
+                                </el-menu-item>
+                            </el-sub-menu>
+                        </el-menu>
+                    </el-main>
+                </el-container>
+            </el-aside>
+
+            <!-- 右侧主内容区 -->
+            <el-container direction="vertical">
+                <!-- 顶部标题栏 -->
+                <el-header height="60px" class="header-container" style="display: flex; align-items: center; justify-content: space-between; padding: 0 32px;">
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);">
+                            <el-icon size="20" color="white">
+                                <House v-if="activeMenu === 'home'" />
+                                <TrendCharts v-else-if="activeMenu === 'chanmama-talent'" />
+                                <Grid v-else-if="activeMenu === 'wechat-automation'" />
+                                <ChatDotRound v-else-if="activeMenu === 'wechat-auto'" />
+                                <ChatLineRound v-else-if="activeMenu === 'wechat-phrases'" />
+                                <VideoPlay v-else-if="activeMenu === 'follow-wechat'" />
+                                <!-- <VideoCamera v-else-if="activeMenu === 'follow-douyin'" />
+                                <Film v-else-if="activeMenu === 'follow-kuaishou'" /> -->
+                                <ChatLineRound v-else-if="activeMenu === 'follow-speech'" />
+                                <Goods v-else-if="activeMenu === 'product-management'" />
+                                <Picture v-else-if="activeMenu === 'image-management'" />
+
+                                <House v-else />
+                            </el-icon>
+                        </div>
+                        <div>
+                            <h2 style="margin: 0; color: #1e293b; font-size: 20px; font-weight: 700;">{{ currentPageTitle }}</h2>
+                            <p style="margin: 2px 0 0 0; color: #64748b; font-size: 14px;">{{ currentPageSubtitle }}</p>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: rgba(59, 130, 246, 0.1); border-radius: 20px; margin-right: 8px;">
+                            <div style="width: 8px; height: 8px; background: #10b981; border-radius: 50%; animation: pulse 2s infinite;"></div>
+                            <span style="font-size: 12px; color: #059669; font-weight: 500;">系统正常</span>
+                        </div>
+                        <el-button class="header-btn" circle @click="refreshContent" :loading="pageLoading">
+                            <el-icon><Refresh /></el-icon>
+                        </el-button>
+                        <el-button class="header-btn" circle>
+                            <el-icon><Setting /></el-icon>
+                        </el-button>
+                        <el-button class="header-btn" circle>
+                            <el-icon><Bell /></el-icon>
+                        </el-button>
+                        <el-dropdown>
+                            <el-button class="header-btn" circle>
+                                <el-icon><User /></el-icon>
+                            </el-button>
+                            <template #dropdown>
+                                <el-dropdown-menu>
+                                    <el-dropdown-item>
+                                        <el-icon style="margin-right: 8px;"><User /></el-icon>
+                                        个人中心
+                                    </el-dropdown-item>
+                                    <el-dropdown-item>
+                                        <el-icon style="margin-right: 8px;"><Setting /></el-icon>
+                                        系统设置
+                                    </el-dropdown-item>
+                                    <el-dropdown-item divided>
+                                        <el-icon style="margin-right: 8px;"><CircleClose /></el-icon>
+                                        退出登录
+                                    </el-dropdown-item>
+                                </el-dropdown-menu>
+                            </template>
+                        </el-dropdown>
+                    </div>
+                </el-header>
+
+                <!-- 主内容区 -->
+                <el-main class="el-main" v-loading="pageLoading" element-loading-text="页面加载中...">
+                    <transition name="fade" mode="out-in">
+                        <div v-if="activeMenu === 'home'" key="home">
+                            <div class="iframe-container" style="height: calc(100vh - 60px); width: 100%;">
+                                <iframe
+                                    src="http://120.24.188.186/"
+                                    style="width: 100%; height: 100%;"
+                                    @load="onIframeLoad"
+                                ></iframe>
+                            </div>
+                        </div>
+                        <div v-else-if="activeMenu === 'chanmama-home'" key="cmmtalent">
+                            <div class="iframe-container" style="height: calc(100vh - 60px); width: 100%;">
+                                <iframe
+                                    src="https://www.chanmama.com/"
+                                    style="width: 100%; height: 100%;"
+                                    @load="onIframeLoad"
+                                ></iframe>
+                            </div>
+                        </div>
+                        <div v-else-if="activeMenu === 'chanmama-talent'" key="talent">
+                            <div class="iframe-container" style="height: calc(100vh - 60px); width: 100%;">
+                                <iframe
+                                    src="talent.html"
+                                    style="width: 100%; height: 100%;"
+                                    @load="onIframeLoad"
+                                ></iframe>
+                            </div>
+                        </div>
+                        <div v-else-if="activeMenu === 'wechat-automation'" key="wechat-automation">
+                            <div class="iframe-container" style="height: calc(100vh - 60px); width: 100%;">
+                                <iframe
+                                    src="wechat_automation.html"
+                                    style="width: 100%; height: 100%;"
+                                    @load="onIframeLoad"
+                                ></iframe>
+                            </div>
+                        </div>
+                        <div v-else-if="activeMenu === 'wechat-auto'" key="wechat">
+                            <div class="iframe-container" style="height: calc(100vh - 60px); width: 100%;">
+                                <iframe
+                                    src="wechatauto.html"
+                                    style="width: 100%; height: 100%;"
+                                    @load="onIframeLoad"
+                                ></iframe>
+                            </div>
+                        </div>
+                        <div v-else-if="activeMenu === 'wechat-phrases'" key="phrases">
+                            <div class="iframe-container" style="height: calc(100vh - 60px); width: 100%;">
+                                <iframe
+                                    src="phrases.html"
+                                    style="width: 100%; height: 100%;"
+                                    @load="onIframeLoad"
+                                ></iframe>
+                            </div>
+                        </div>
+                        <div v-else-if="activeMenu === 'follow-wechat'" key="follow-wechat">
+                            <div class="iframe-container" style="height: calc(100vh - 60px); width: 100%;">
+                                <iframe
+                                    src="follow_wechat.html"
+                                    style="width: 100%; height: 100%;"
+                                    @load="onIframeLoad"
+                                ></iframe>
+                            </div>
+                        </div>
+                        <!-- 暂时隐藏抖音和快手功能，还未开发完成 -->
+                        <!-- <div v-else-if="activeMenu === 'follow-douyin'" key="follow-douyin">
+                            <div class="iframe-container" style="height: calc(100vh - 60px); width: 100%;">
+                                <iframe
+                                    src="follow_douyin.html"
+                                    style="width: 100%; height: 100%;"
+                                    @load="onIframeLoad"
+                                ></iframe>
+                            </div>
+                        </div>
+                        <div v-else-if="activeMenu === 'follow-kuaishou'" key="follow-kuaishou">
+                            <div class="iframe-container" style="height: calc(100vh - 60px); width: 100%;">
+                                <iframe
+                                    src="follow_kuaishou.html"
+                                    style="width: 100%; height: 100%;"
+                                    @load="onIframeLoad"
+                                ></iframe>
+                            </div>
+                        </div> -->
+                        <div v-else-if="activeMenu === 'follow-speech'" key="follow-speech">
+                            <div class="iframe-container" style="height: calc(100vh - 60px); width: 100%;">
+                                <iframe
+                                    src="follow_speech.html"
+                                    style="width: 100%; height: 100%;"
+                                    @load="onIframeLoad"
+                                ></iframe>
+                            </div>
+                        </div>
+
+                        <div v-else-if="activeMenu === 'product-management'" key="product-management">
+                            <div class="iframe-container" style="height: calc(100vh - 60px); width: 100%;">
+                                <iframe
+                                    src="product_management.html"
+                                    style="width: 100%; height: 100%;"
+                                    @load="onIframeLoad"
+                                ></iframe>
+                            </div>
+                        </div>
+
+                        <div v-else-if="activeMenu === 'image-management'" key="image-management">
+                            <div class="iframe-container" style="height: calc(100vh - 60px); width: 100%;">
+                                <iframe
+                                    src="image_management.html"
+                                    style="width: 100%; height: 100%;"
+                                    @load="onIframeLoad"
+                                ></iframe>
+                            </div>
+                        </div>
+
+
+
+                        <div v-else-if="activeMenu === 'big-data-nav'" key="bigdata">
+                            <div class="iframe-container" style="height: calc(100vh - 60px); width: 100%;">
+                                <iframe
+                                    src="https://bigdata.ttdh.cn/"
+                                    style="width: 100%; height: 100%;"
+                                    @load="onIframeLoad"
+                                ></iframe>
+                            </div>
+                        </div>
+                    </transition>
+                </el-main>
+            </el-container>
+        </el-container>
+    </div>
+
+    <!-- Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Element Plus -->
+    <script src="https://unpkg.com/element-plus/dist/index.full.js"></script>
+    <!-- Element Plus Icons -->
+    <script src="https://unpkg.com/@element-plus/icons-vue/dist/index.iife.js"></script>
+
+    <script>
+        const { createApp, ref, computed } = Vue;
+        const { ElMessage } = ElementPlus;
+
+        const app = createApp({
+            setup() {
+                const activeMenu = ref('home');
+                const pageLoading = ref(false);
+
+                const currentPageTitle = computed(() => {
+                    const titles = {
+                        'home': '首页概览',
+                        'chanmama-talent': '达人数据提取',
+                        'chanmama-home': '蝉妈妈主页',
+                        'wechat-automation': '微信自动化功能中心',
+                        'wechat-auto': '批量添加好友',
+                        'wechat-phrases': '常用语管理',
+                        'follow-wechat': '微信视频号跟播',
+                        // 'follow-douyin': '抖音跟播',
+                        // 'follow-kuaishou': '快手跟播',
+                        'follow-speech': '话术管理',
+                        'product-management': '商品管理',
+                        'image-management': '图片管理',
+
+                        'bigdata-nav': '大数据导航'
+
+                    };
+                    return titles[activeMenu.value] || '首页概览';
+                });
+
+                const currentPageSubtitle = computed(() => {
+                    const subtitles = {
+                        'home': '系统运行状态一览',
+                        'chanmama-talent': '蝉妈妈平台数据分析',
+                        'chanmama-home': '蝉妈妈平台主页',
+                        'wechat-automation': '智能化微信管理，让工作更高效',
+                        'wechat-auto': '智能微信营销助手',
+                        'wechat-phrases': '微信验证消息模板管理',
+                        'follow-wechat': '微信视频号自动化跟播系统',
+                        // 'follow-douyin': '抖音直播自动化跟播系统',
+                        // 'follow-kuaishou': '快手直播自动化跟播系统',
+                        'follow-speech': '直播间话术模板管理',
+                        'product-management': '管理商品信息，支持图像识别功能',
+                        'image-management': '管理图像识别图片，支持商品关联',
+
+                        'bigdata-nav': '大数据导航'
+                    };
+                    return subtitles[activeMenu.value] || '系统运行状态一览';
+                });
+
+                const handleMenuSelect = (index) => {
+                    pageLoading.value = true;
+                    activeMenu.value = index;
+                    // 模拟加载时间
+                    setTimeout(() => {
+                        pageLoading.value = false;
+                    }, 300);
+                };
+
+                const refreshContent = () => {
+                    pageLoading.value = true;
+                    setTimeout(() => {
+                        pageLoading.value = false;
+                        ElMessage.success('刷新完成');
+                    }, 500);
+                };
+
+                const onIframeLoad = () => {
+                    pageLoading.value = false;
+                };
+
+                return {
+                    activeMenu,
+                    pageLoading,
+                    currentPageTitle,
+                    currentPageSubtitle,
+                    handleMenuSelect,
+                    refreshContent,
+                    onIframeLoad
+                };
+            }
+        });
+
+        // 注册所有图标
+            Object.keys(ElementPlusIconsVue).forEach(key => {
+            app.component(key, ElementPlusIconsVue[key]);
+        });
+
+        app.use(ElementPlus).mount('#app');
+
+        // 启动加载逻辑
+        function startupLoading() {
+            const progressBar = document.getElementById('progress-bar');
+            const statusText = document.getElementById('startup-status');
+            const startupScreen = document.getElementById('startup-loading');
+            const appContainer = document.getElementById('app');
+            const titleElement = document.getElementById('startup-title');
+            const subtitleElement = document.getElementById('startup-subtitle');
+
+            // 随机标题和副标题
+            const randomTitles = [
+                { title: '智能工作台', subtitle: 'Smart Workspace' },
+                { title: '效率神器', subtitle: 'Productivity Booster' },
+                { title: '数据魔法师', subtitle: 'Data Wizard' },
+                { title: '办公利器', subtitle: 'Office Arsenal' },
+                { title: '智慧助手', subtitle: 'Smart Assistant' }
+            ];
+
+            // 温馨鼓励语句
+            const randomMessages = [
+                '💖 今天也要元气满满哦！',
+                '🌸 你就是最美的花朵！',
+                '✨ 你的努力终将闪闪发光',
+                '🌟 每一次努力都让你更闪耀',
+                '💕 爱自己，爱生活，爱工作',
+                '🌈 心情美美哒，工作棒棒哒',
+                '🍀 好运气今天围绕着你',
+                '🌸 温柔而坚定地前进吧',
+                '💎 你比钻石还要闪亮',
+                '🌺 像花儿一样美丽绽放',
+                '🎈 心情轻盈，工作愉快',
+                '🌻 向着阳光，积极向上',
+                '🎊 每一天都值得庆祝',
+                '💌 给努力的自己点个赞',
+                '🦋 优雅地迎接新的一天'
+            ];
+
+            // 随机选择标题
+            const randomTitle = randomTitles[Math.floor(Math.random() * randomTitles.length)];
+            titleElement.textContent = randomTitle.title;
+            subtitleElement.textContent = randomTitle.subtitle;
+
+            const loadingSteps = [
+                { progress: 25, text: '正在初始化系统...' },
+                { progress: 50, text: '正在加载界面组件...' },
+                { progress: 75, text: '正在准备工作环境...' },
+                { progress: 100, text: randomMessages[Math.floor(Math.random() * randomMessages.length)] }
+            ];
+
+            let currentStep = 0;
+
+            function updateProgress() {
+                if (currentStep < loadingSteps.length) {
+                    const step = loadingSteps[currentStep];
+                    progressBar.style.width = step.progress + '%';
+                    statusText.textContent = step.text;
+                    currentStep++;
+
+                    if (currentStep < loadingSteps.length) {
+                        setTimeout(updateProgress, 600 + Math.random() * 400);
+                    } else {
+                        // 加载完成，显示主界面
+                        setTimeout(() => {
+                            startupScreen.classList.add('fade-out');
+                            appContainer.classList.add('loaded');
+
+                            // 完全隐藏启动界面
+                            setTimeout(() => {
+                                startupScreen.style.display = 'none';
+                            }, 800);
+                        }, 500);
+                    }
+                } else {
+                    // 加载完成
+                    setTimeout(() => {
+                        startupScreen.classList.add('fade-out');
+                        appContainer.classList.add('loaded');
+                    }, 300);
+                }
+            }
+
+            // 开始加载
+            setTimeout(updateProgress, 500);
+        }
+
+        // 页面加载完成后开始启动动画
+        window.addEventListener('load', startupLoading);
+    </script>
+</body>
+</html>
